@@ -1,0 +1,13 @@
+EL siguiente doc es para configurar las dependencias para jpa y sql
+{copiar en applicaction.propierties}
+
+spring.application.name=backend
+
+spring.datasource.url=jdbc:{namedb}://localhost:{puerto}/{namedb}?useSSL=false&serverTimezone=UTC
+spring.datasource.username={usernamedb}
+spring.datasource.password={passworddb}
+spring.datasource.driver-class-name={driverDB}
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect

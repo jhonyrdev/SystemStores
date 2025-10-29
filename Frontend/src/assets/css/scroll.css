@@ -1,0 +1,18 @@
+::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+body.scrolling ::-webkit-scrollbar {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.scrolling ::-webkit-scrollbar-thumb {
+  background: rgba(165, 24, 132, 0.6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background 0.3s ease;
+}

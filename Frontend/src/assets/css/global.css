@@ -1,0 +1,29 @@
+.bg-principal{
+    background-color: #a00691;
+}
+.bg-principal-claro{
+    background-color: #f509dd;  
+}
+.bg-principal-oscuro{
+    background-color: #5e0956;  
+}
+
+.bg-secundario{
+    background-color: #f2c32f;  
+}
+.bg-secundario-oscuro{
+    background-color: #c89b06;  
+}
+.bg-secundario-claro{
+    background-color: #f2ebd6;  
+}
+
+.text-principal{
+    color: #5e0956;
+}
+.text-secundario{
+    color: #f2c32f;
+}
+.text-secundario-oscuro{
+    color: #c89b06;  
+}

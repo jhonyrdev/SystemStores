@@ -1,0 +1,54 @@
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;     
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Container personalizado estilo Bootstrap */
+.container-bootstrap {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+@media (max-width: 575px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
+
+@media (min-width: 576px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
+
+@media (min-width: 992px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container-bootstrap {
+    max-width: 95%;
+  }
+}
