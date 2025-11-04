@@ -1,15 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 package com.magicGroup.backend.services.extrasServices.extraServiceImpl;
-
-/**
- *
- * @author Jhonn
- */
-
 
 import com.magicGroup.backend.model.extras.MetodoPago;
 import com.magicGroup.backend.repository.extrasRepository.MetodoPagoRepository;

@@ -5,8 +5,6 @@ import com.magicGroup.backend.model.usuarios.Cliente;
 import jakarta.persistence.*;           
 import lombok.*; 
 
-/* @author Jhonn */
-
 @Entity
 @Table(name = "Direccion")
 @Data

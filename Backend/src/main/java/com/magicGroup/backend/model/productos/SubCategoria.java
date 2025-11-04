@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 package com.magicGroup.backend.model.productos;
 
@@ -9,9 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
 import com.fasterxml.jackson.annotation.*;
-
-
-/* @author Jhonn */
 
 @Entity
 @Table(name = "Subcategoria")

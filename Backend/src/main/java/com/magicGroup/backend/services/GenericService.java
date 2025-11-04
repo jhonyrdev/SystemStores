@@ -1,12 +1,6 @@
 package com.magicGroup.backend.services;
 
-import java.util.List;
-import java.util.Optional;
-
-/**
- *
- * @author Jhonn
- */
+import java.util.*;
 
 public interface GenericService<T, ID> {
     List<T> listarTodos();

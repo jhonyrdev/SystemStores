@@ -12,12 +12,11 @@ import java.math.BigDecimal;
 @Service
 public class PedidoServiceImpl extends GenericServiceImpl<Pedido, Integer> implements PedidoService {
     
-    private final PedidoRepository pedidoRepository;
+
     private final EntityManager entityManager; 
     
     public PedidoServiceImpl(PedidoRepository pedidoRepository, EntityManager entityManager) {
         super(pedidoRepository);
-        this.pedidoRepository = pedidoRepository;
         this.entityManager = entityManager;
     }
     

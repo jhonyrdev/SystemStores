@@ -5,16 +5,14 @@
 
 package com.magicGroup.backend.services.extrasServices;
 
-import com.magicGroup.backend.model.usuarios.Administrador;
-import com.magicGroup.backend.model.usuarios.Cliente;
-import com.magicGroup.backend.model.usuarios.Credencial;
-import com.magicGroup.backend.repository.usuariosRepository.AdministradorRepository;
-import com.magicGroup.backend.repository.usuariosRepository.ClienteRepository;
-import com.magicGroup.backend.repository.usuariosRepository.CredencialRepository;
+import com.magicGroup.backend.model.usuarios.*;
+import com.magicGroup.backend.repository.usuariosRepository.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+
 import com.magicGroup.backend.services.usuariosServices.ClienteService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +20,7 @@ import java.util.Optional;
 
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final ClienteRepository clienteRepository;
@@ -30,29 +29,17 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final ClienteService clienteService;
 
-    public AuthService(ClienteRepository clienteRepository,
-                   AdministradorRepository administradorRepository,
-                   CredencialRepository credencialRepository,
-                   PasswordEncoder passwordEncoder,
-                   ClienteService clienteService) {
-    this.clienteRepository = clienteRepository;
-    this.administradorRepository = administradorRepository;
-    this.credencialRepository = credencialRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.clienteService = clienteService;
-}
-
     // Verifica si la contraseña ya está hasheada
     private boolean isHashed(String password) {
         return password != null && password.startsWith("$2a$");
     }
 
     // Hashea si no está hasheada
+	@SuppressWarnings("unused")
     private String ensureHashed(String password) {
         return isHashed(password) ? password : passwordEncoder.encode(password);
     }
 
-    // Login Cliente (correo o usuario)
     public Optional<Cliente> loginCliente(String identificador, String claveIngresada, HttpServletRequest request) {
 	    Optional<Cliente> clienteOpt = clienteRepository.findByCorreoCli(identificador);
 
@@ -61,7 +48,6 @@ public class AuthService {
 		    if (credOpt.isPresent()) {
 			    Credencial cred = credOpt.get();
 
-			    // Aseguramos hash en BD
 			    if (!isHashed(cred.getClave())) {
 				    cred.setClave(passwordEncoder.encode(cred.getClave()));
 				    credencialRepository.save(cred);
@@ -80,7 +66,6 @@ public class AuthService {
 			    clienteEncontrado.ifPresent(cliente -> {
 				    clienteService.reactivarAlIniciarSesion(cliente.getIdCli());
 
-				    // 👇 AGREGAR ESTO: Establecer sesión
 				    UsernamePasswordAuthenticationToken authToken =
 						    new UsernamePasswordAuthenticationToken(cliente, null, null);
 				    SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -106,10 +91,8 @@ public class AuthService {
 	    if (cliente.getEstado() == Cliente.Estado.activo &&
 			    passwordEncoder.matches(claveIngresada, cred.getClave())) {
 
-		    // Reactivación aquí también
 		    clienteService.reactivarAlIniciarSesion(cliente.getIdCli());
 
-		    // 👇 AGREGAR ESTO: Establecer sesión
 		    UsernamePasswordAuthenticationToken authToken =
 				    new UsernamePasswordAuthenticationToken(cliente, null, null);
 		    SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -132,7 +115,6 @@ public class AuthService {
         Administrador admin = adminOpt.get();
         Credencial cred = admin.getCredencial();
 
-        // Aseguramos hash en BD
         if (!isHashed(cred.getClave())) {
             cred.setClave(passwordEncoder.encode(cred.getClave()));
             credencialRepository.save(cred);

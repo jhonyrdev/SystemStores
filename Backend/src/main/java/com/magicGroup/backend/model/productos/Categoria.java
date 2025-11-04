@@ -5,11 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
 
-/**
- *
- * @author Jhonn
- */
-
 @Entity
 @Table(name = "Categoria")
 @Data

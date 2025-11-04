@@ -6,20 +6,16 @@ import com.magicGroup.backend.services.GenericServiceImpl;
 import com.magicGroup.backend.services.ventasServices.VentaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.ParameterMode;
-import jakarta.persistence.StoredProcedureQuery;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Service
 public class VentaServiceImpl extends GenericServiceImpl<Venta, Integer> implements VentaService {
     
-    private final VentaRepository ventaRepository;
     private final EntityManager entityManager; 
     
     public VentaServiceImpl(VentaRepository ventaRepository, EntityManager entityManager) {
         super(ventaRepository);
-        this.ventaRepository = ventaRepository;
         this.entityManager = entityManager; 
     }
     

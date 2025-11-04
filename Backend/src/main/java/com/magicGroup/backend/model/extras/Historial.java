@@ -4,14 +4,8 @@ package com.magicGroup.backend.model.extras;
 import com.magicGroup.backend.model.usuarios.Administrador;
 import jakarta.persistence.*;           
 import lombok.*; 
+import java.time.*;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-
-/**
- *
- * @author Jhonn
- */
 @Entity
 @Table(name = "Historial")
 @Data

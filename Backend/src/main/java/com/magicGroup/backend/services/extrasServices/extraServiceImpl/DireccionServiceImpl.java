@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-/* @author Jhonn */
-
 @Service
 public class DireccionServiceImpl extends GenericServiceImpl<Direccion, Integer> implements DireccionService {
 

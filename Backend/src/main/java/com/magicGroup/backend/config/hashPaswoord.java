@@ -1,23 +1,13 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
-/*package com.magicGroup.backend.config;
+/* 
+package com.magicGroup.backend.config;
 
 import com.magicGroup.backend.model.usuarios.Credencial;
 import com.magicGroup.backend.repository.usuariosRepository.CredencialRepository;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
 
-/**
- *
- * @author Jhonn
- */
-/*
 @Configuration
 public class hashPaswoord {
 
@@ -38,9 +28,9 @@ public class hashPaswoord {
             }
 
             if (count > 0)
-                System.out.println("✅ Contraseñas actualizadas y hasheadas: " + count);
+                System.out.println("Contraseñas actualizadas y hasheadas: " + count);
             else
-                System.out.println("🔹 Todas las contraseñas ya estaban hasheadas.");
+                System.out.println("Todas las contraseñas ya estaban hasheadas.");
         };
     }
 }*/

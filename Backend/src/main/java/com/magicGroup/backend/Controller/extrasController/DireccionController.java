@@ -5,12 +5,9 @@ import com.magicGroup.backend.model.usuarios.Cliente;
 import com.magicGroup.backend.repository.usuariosRepository.ClienteRepository;
 import com.magicGroup.backend.services.extrasServices.DireccionService;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 
 import java.util.*;
-
-/* @author Jhonn */
 
 @RestController
 @RequestMapping("/api/direcciones")

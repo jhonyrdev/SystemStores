@@ -6,10 +6,6 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
-/**
- *
- * @author Jhonn
- */
 @Entity
 @Table(name = "DetallePedido")
 @Data

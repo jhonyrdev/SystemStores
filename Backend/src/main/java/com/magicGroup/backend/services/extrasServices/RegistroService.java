@@ -1,16 +1,15 @@
 package com.magicGroup.backend.services.extrasServices;
 
-import com.magicGroup.backend.model.usuarios.Cliente;
-import com.magicGroup.backend.model.usuarios.Credencial;
-import com.magicGroup.backend.repository.usuariosRepository.ClienteRepository;
-import com.magicGroup.backend.repository.usuariosRepository.CredencialRepository;
+import com.magicGroup.backend.model.usuarios.*;
+import com.magicGroup.backend.repository.usuariosRepository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
+@RequiredArgsConstructor
 public class RegistroService {
 
     private final ClienteRepository clienteRepository;
@@ -19,15 +18,6 @@ public class RegistroService {
 
     private static final AtomicInteger SECUENCIA = new AtomicInteger(0);
 
-    public RegistroService(ClienteRepository clienteRepository,
-                           CredencialRepository credencialRepository,
-                           PasswordEncoder passwordEncoder) {
-        this.clienteRepository = clienteRepository;
-        this.credencialRepository = credencialRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    // Generar código único perzonalizado
     private String generarCodigoClienteUnico() {
         long tiempo = System.currentTimeMillis();
         int sec = SECUENCIA.getAndIncrement() % 10000;

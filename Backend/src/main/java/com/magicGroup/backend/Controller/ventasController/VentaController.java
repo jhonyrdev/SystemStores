@@ -1,15 +1,17 @@
 package com.magicGroup.backend.Controller.ventasController;
 
 import com.magicGroup.backend.services.ventasServices.ventasServicesImpl.VentaServiceImpl;
+import lombok.RequiredArgsConstructor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import java.time.*;
 import java.util.*;
 import java.math.BigDecimal;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/ventas")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class VentaController {
@@ -17,25 +19,16 @@ public class VentaController {
     private final VentaServiceImpl ventaService;
     private final ObjectMapper objectMapper;
     
-    public VentaController(VentaServiceImpl ventaService, ObjectMapper objectMapper) {
-        this.ventaService = ventaService;
-        this.objectMapper = objectMapper;
-    }
-    
     @PostMapping("/registrar")
     public ResponseEntity<Map<String, Object>> registrarVenta(@RequestBody Map<String, Object> body) {
         try {
-            System.out.println("=== Body recibido en Venta ===");
-            System.out.println(body);
-            
-            // Extraer y validar parámetros
+          
             Number idClienteNum = (Number) body.get("id_cli");
             if (idClienteNum == null) {
                 throw new IllegalArgumentException("El campo 'id_cli' es requerido");
             }
             Integer idCliente = idClienteNum.intValue();
             
-            // id_ped puede ser null para ventas directas sin pedido previo
             Number idPedidoNum = (Number) body.get("id_ped");
             Integer idPedido = idPedidoNum != null ? idPedidoNum.intValue() : null;
             
@@ -45,7 +38,6 @@ public class VentaController {
             }
             Integer idMetodo = idMetodoNum.intValue();
             
-            // Convertir total a BigDecimal para mayor precisión
             Object totalObj = body.get("total");
             if (totalObj == null) {
                 throw new IllegalArgumentException("El campo 'total' es requerido");
@@ -80,30 +72,20 @@ public class VentaController {
                 }
             }
             
-            // Validar y convertir detalles
-            List<Map<String, Object>> detallesList = (List<Map<String, Object>>) body.get("detalles");
+            List<Map<String, Object>> detallesList = objectMapper.convertValue(
+                body.get("detalles"),
+                new TypeReference<List<Map<String, Object>>>() {}
+            );
+            
             if (detallesList == null || detallesList.isEmpty()) {
                 throw new IllegalArgumentException("El campo 'detalles' es requerido y no puede estar vacío");
             }
             
             String detallesJson = objectMapper.writeValueAsString(detallesList);
             
-            System.out.println("=== Parámetros procesados ===");
-            System.out.println("idCliente: " + idCliente);
-            System.out.println("idPedido: " + idPedido);
-            System.out.println("idMetodo: " + idMetodo);
-            System.out.println("total: " + total);
-            System.out.println("tipo: " + tipo);
-            System.out.println("codigo: " + codigo);
-            System.out.println("ruc: " + ruc);
-            System.out.println("razonSocial: " + razonSocial);
-            System.out.println("detallesJson: " + detallesJson);
-            
-            // Registrar venta (el procedure no devuelve id_venta, lo genera internamente)
             ventaService.registrarVenta(idCliente, idPedido, idMetodo, total, tipo, 
                                        codigo, ruc, razonSocial, detallesJson);
             
-            // Preparar respuesta exitosa
             Map<String, Object> response = new HashMap<>();
             response.put("mensaje", "Venta registrada correctamente");
             response.put("id_ped", idPedido);
@@ -111,9 +93,7 @@ public class VentaController {
             response.put("codigo", codigo);
             response.put("fecha", LocalDate.now().toString());
             response.put("hora", LocalTime.now().toString());
-            
-            System.out.println("=== Venta registrada exitosamente ===");
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (IllegalArgumentException e) {

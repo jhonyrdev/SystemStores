@@ -1,16 +1,10 @@
 package com.magicGroup.backend.model.ventas;
 
 import com.magicGroup.backend.model.productos.Producto;
-
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 
-/**
- *
- * @author Jhonn
- */
 @Entity
 @Table(name = "DetalleVenta")
 @Data

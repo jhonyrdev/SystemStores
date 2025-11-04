@@ -1,6 +1,5 @@
 package com.magicGroup.backend.Controller.productosController;
 
-import com.magicGroup.backend.model.productos.Categoria;
 import com.magicGroup.backend.services.productosServices.CategoriaService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;

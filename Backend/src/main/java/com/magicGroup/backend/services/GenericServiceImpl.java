@@ -2,13 +2,7 @@ package com.magicGroup.backend.services;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Optional;
-/**
- *
- * @author Jhonn
- */
+import java.util.*;
 
 @Transactional
 public class GenericServiceImpl<T, ID> implements GenericService<T, ID> {

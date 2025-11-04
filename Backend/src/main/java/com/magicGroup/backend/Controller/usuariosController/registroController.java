@@ -1,8 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 package com.magicGroup.backend.Controller.usuariosController;
 
 import com.magicGroup.backend.model.usuarios.Cliente;
@@ -10,11 +5,6 @@ import com.magicGroup.backend.services.extrasServices.RegistroService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
-
-/**
- *
- * @author Jhonn
- */
 
 @RestController
 @RequestMapping("/api/usuarios")

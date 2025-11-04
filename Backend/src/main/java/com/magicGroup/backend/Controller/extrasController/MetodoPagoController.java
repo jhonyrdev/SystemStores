@@ -4,8 +4,7 @@ import com.magicGroup.backend.model.extras.MetodoPago;
 import com.magicGroup.backend.services.extrasServices.MetodoPagoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/metodosPago")
