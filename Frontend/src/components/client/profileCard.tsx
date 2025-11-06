@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import DynamicForm from "../common/dynamicForm";
 import type { FieldConfig } from "../common/dynamicForm";
 import type { Cliente } from "@/types/cliente";
-import { getClienteLogueado, actualizarCliente } from "@/services/cliente/clienteService";
+import {
+  getClienteLogueado,
+  actualizarCliente,
+} from "@/services/cliente/clienteService";
 
 const ProfileCard = () => {
   const [editMode, setEditMode] = useState(false);
@@ -63,37 +66,65 @@ const ProfileCard = () => {
       setCliente(clienteActualizado);
       localStorage.setItem("usuario", JSON.stringify(clienteActualizado));
       setEditMode(false);
-      alert("Perfil actualizado correctamente ✅");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      alert("Perfil actualizado correctamente");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("No se pudo guardar el perfil");
     }
   };
 
-  // 🔹 Cancelar edición
   const handleCancel = () => setEditMode(false);
 
-  // 🔹 Modo visualización
   const renderViewMode = () => (
-    <div className="max-w-6xl mx-auto p-4 space-y-4">
+    <div className="max-w-3xl p-6 rounded shadow-md space-y-4 bg-[#fcf6e3ff]">
       {cliente ? (
-        fields.map(({ name, label }) => (
-          <div
-            key={name}
-            className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0"
-          >
-            <span className="font-semibold">{label}:</span>
-            <span className="break-words truncate sm:truncate max-w-full">
-              {cliente[name as keyof Cliente] || "—"}
+        <div className="flex flex-col gap-4">
+          {/* Nombre */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-base sm:text-lg md:text-xl w-32">
+              Nombre:
+            </span>
+            <span className="text-sm sm:text-base md:text-lg">
+              {cliente.nombre || "—"}
             </span>
           </div>
-        ))
+
+          {/* Apellido */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-base sm:text-lg md:text-xl w-32">
+              Apellido:
+            </span>
+            <span className="text-sm sm:text-base md:text-lg">
+              {cliente.apellido || "—"}
+            </span>
+          </div>
+
+          {/* Correo */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-base sm:text-lg md:text-xl w-32">
+              Correo:
+            </span>
+            <span className="text-sm sm:text-base md:text-lg">
+              {cliente.correo || "—"}
+            </span>
+          </div>
+
+          {/* Teléfono */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-base sm:text-lg md:text-xl w-32">
+              Teléfono:
+            </span>
+            <span className="text-sm sm:text-base md:text-lg">
+              {cliente.telefono || "—"}
+            </span>
+          </div>
+        </div>
       ) : (
         <p className="text-gray-500">Cargando perfil...</p>
       )}
 
       <button
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        className="mt-6 px-4 py-2 bg-principal-oscuro text-white rounded hover:text-[#f2c32f] text-sm sm:text-base md:text-lg"
         onClick={() => setEditMode(true)}
       >
         Editar
@@ -111,7 +142,7 @@ const ProfileCard = () => {
         submitLabel="Guardar cambios"
       />
       <p
-        className="text-center text-sm text-gray-500 cursor-pointer hover:underline"
+        className="text-center text-sm text-[#5e0956] hover:font-semibold cursor-pointer"
         onClick={handleCancel}
       >
         Volver...

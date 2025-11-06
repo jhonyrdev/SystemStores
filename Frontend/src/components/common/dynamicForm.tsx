@@ -34,9 +34,12 @@ interface DynamicFormProps {
   title?: string;
   fields: FieldConfig[];
   submitLabel?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (data: Record<string, any>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialValues?: Record<string, any>;
   showPasswordStrength?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onChangeField?: (name: string, value: any) => void;
 }
 
@@ -49,6 +52,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   showPasswordStrength,
   onChangeField,
 }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -328,7 +332,10 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
       </div>
 
       {/* Botón fuera del scroll */}
-      <Button type="submit" className="w-full">
+      <Button
+        type="submit"
+        className="w-full bg-secundario text-black hover:text-[#5e0956]"
+      >
         {submitLabel}
       </Button>
     </form>

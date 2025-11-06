@@ -29,7 +29,6 @@ const menuItems = [
     icon: <Users size={20} />,
     links: [
       { to: "/admin/usuarios/clientes", label: "Clientes" },
-      { to: "/admin/usuarios/reclamos", label: "Reclamos" },
     ],
   },
   {

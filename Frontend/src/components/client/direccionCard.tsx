@@ -1,5 +1,6 @@
 "use client";
 
+import { Listbox } from "@headlessui/react";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -24,7 +25,7 @@ const DireccionCard = () => {
   const [error, setError] = useState<string | null>(null);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [idCliente, setIdCliente] = useState<number | null>(null);
-  
+
   const [formDireccion, setFormDireccion] = useState("");
   const [formTipo, setFormTipo] = useState("Casa");
 
@@ -45,7 +46,9 @@ const DireccionCard = () => {
       const data = await listarDireccionesCliente(idCliente);
       setDirecciones(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar direcciones");
+      setError(
+        err instanceof Error ? err.message : "Error al cargar direcciones"
+      );
     } finally {
       setLoading(false);
     }
@@ -59,7 +62,7 @@ const DireccionCard = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!idCliente) {
       setError("No se pudo obtener el ID del cliente");
       return;
@@ -83,7 +86,9 @@ const DireccionCard = () => {
       await cargarDirecciones();
       handleCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar la dirección");
+      setError(
+        err instanceof Error ? err.message : "Error al guardar la dirección"
+      );
     } finally {
       setLoading(false);
     }
@@ -98,7 +103,9 @@ const DireccionCard = () => {
       await eliminarDireccion(id);
       await cargarDirecciones();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar la dirección");
+      setError(
+        err instanceof Error ? err.message : "Error al eliminar la dirección"
+      );
     } finally {
       setLoading(false);
     }
@@ -122,7 +129,9 @@ const DireccionCard = () => {
   if (!idCliente && !loading) {
     return (
       <div className="max-w-6xl mx-auto py-12 text-center">
-        <p className="text-gray-500">Debes iniciar sesión para ver tus direcciones.</p>
+        <p className="text-gray-500">
+          Debes iniciar sesión para ver tus direcciones.
+        </p>
       </div>
     );
   }
@@ -146,7 +155,7 @@ const DireccionCard = () => {
 
             <button
               onClick={() => setFormVisible(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-secundario-claro1 text-black rounded-md hover:bg-blue-700 transition"
             >
               <span className="hidden md:inline">Registrar dirección</span>
               <Plus className="w-5 h-5 md:hidden" />
@@ -166,15 +175,15 @@ const DireccionCard = () => {
               </p>
             ) : (
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-secundario-claro text-black border-b">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                       Dirección
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                       Tipo
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
                       Acción
                     </th>
                   </tr>
@@ -249,29 +258,97 @@ const DireccionCard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tipo *
               </label>
-              <select
-                value={formTipo}
-                onChange={(e) => setFormTipo(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Casa">Casa</option>
-                <option value="Oficina">Oficina</option>
-                <option value="Otro">Otro</option>
-              </select>
+              <Listbox value={formTipo} onChange={setFormTipo}>
+                <div className="relative">
+                  <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <span className="block truncate">{formTipo}</span>
+                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg border border-gray-200 focus:outline-none">
+                    <Listbox.Option
+                      value="Casa"
+                      className={({ active }) =>
+                        `relative cursor-pointer select-none py-2 px-4 ${
+                          active
+                            ? "bg-secundario-claro text-secundario-oscuro"
+                            : "text-gray-900"
+                        }`
+                      }
+                    >
+                      {({ selected }) => (
+                        <span
+                          className={selected ? "font-semibold" : "font-normal"}
+                        >
+                          Casa
+                        </span>
+                      )}
+                    </Listbox.Option>
+                    <Listbox.Option
+                      value="Oficina"
+                      className={({ active }) =>
+                        `relative cursor-pointer select-none py-2 px-4 ${
+                          active
+                            ? "bg-secundario-claro text-secundario-oscuro"
+                            : "text-gray-900"
+                        }`
+                      }
+                    >
+                      {({ selected }) => (
+                        <span
+                          className={selected ? "font-semibold" : "font-normal"}
+                        >
+                          Oficina
+                        </span>
+                      )}
+                    </Listbox.Option>
+                    <Listbox.Option
+                      value="Otro"
+                      className={({ active }) =>
+                        `relative cursor-pointer select-none py-2 px-4 ${
+                          active
+                            ? "bg-secundario-claro text-secundario-oscuro"
+                            : "text-gray-900"
+                        }`
+                      }
+                    >
+                      {({ selected }) => (
+                        <span
+                          className={selected ? "font-semibold" : "font-normal"}
+                        >
+                          Otro
+                        </span>
+                      )}
+                    </Listbox.Option>
+                  </Listbox.Options>
+                </div>
+              </Listbox>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-secundario-claro1 text-black rounded-md hover:text-[#5e0956] hover:font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Guardando..." : "Guardar"}
               </button>
+
               <button
                 onClick={handleCancel}
                 disabled={loading}
-                className="flex-1 px-4 py-2 border rounded-md hover:bg-gray-100 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 border rounded-md hover:bg-[#fffdf5f4] transition disabled:opacity-50"
               >
                 Cancelar
               </button>

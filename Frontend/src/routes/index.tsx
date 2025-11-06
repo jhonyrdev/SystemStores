@@ -15,7 +15,6 @@ const SeguridadCliente = lazy(() => import("@/pages/client/seguridadCliente"));
 const Dashboard = lazy(() => import("@pages/admin/dashboard"));
 const GestionProductos = lazy(() => import("@pages/admin/gestionProductos"));
 const GestionClientes = lazy(() => import("@/pages/admin/gestionClientes"));
-const GestionReclamos = lazy(() => import("@/pages/admin/gestionReclamos"));
 const GestionPedidos = lazy(() => import("@/pages/admin/gestionPedidos"));
 const GestionCategorias = lazy(() => import("@/pages/admin/gestionCategoria"));
 const Analisis = lazy(() => import("@/pages/admin/analisis"));
@@ -64,9 +63,7 @@ const AppRoutes = () => {
           <Route index element={<Dashboard />} />
           <Route path="gestion/productos" element={<GestionProductos />} />
           <Route path="gestion/categorias" element={<GestionCategorias />} />
-          <Route path="usuarios/clientes" element={<GestionClientes />} />
-          <Route path="usuarios/reclamos" element={<GestionReclamos />} />
-          <Route path="ventas/pedidos" element={<GestionPedidos />} />
+          <Route path="usuarios/clientes" element={<GestionClientes />} />          <Route path="ventas/pedidos" element={<GestionPedidos />} />
           <Route path="ventas/analisis" element={<Analisis />} />
         </Route>
       </Routes>

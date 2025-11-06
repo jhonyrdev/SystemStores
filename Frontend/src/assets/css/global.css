@@ -2,8 +2,9 @@
     background-color: #a00691;
 }
 .bg-principal-claro{
-    background-color: #f509dd;  
+    background-color: #b615a6ff;  
 }
+
 .bg-principal-oscuro{
     background-color: #5e0956;  
 }
@@ -15,15 +16,24 @@
     background-color: #c89b06;  
 }
 .bg-secundario-claro{
-    background-color: #f2ebd6;  
+    background-color: #fffbf0ff;  
+}
+
+.bg-secundario-claro1{
+    background-color: #fcdb76ff;  
 }
 
 .text-principal{
     color: #5e0956;
 }
+
 .text-secundario{
     color: #f2c32f;
 }
 .text-secundario-oscuro{
     color: #c89b06;  
+}
+
+.bg-secundario-claro-opacidad{
+    background-color: #fffdf5f4;  
 }
