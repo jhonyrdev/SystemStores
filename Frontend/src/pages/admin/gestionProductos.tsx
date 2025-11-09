@@ -16,12 +16,11 @@ const GestionProductos = () => {
   const [filtered, setFiltered] = useState<Producto[]>([]);
   const [categoriasFiltro, setCategoriasFiltro] = useState<string[]>(["Todos"]);
   const [page, setPage] = useState(1);
-  const perPage = 5;
+  const perPage = 10;
  
   const [modalOpen, setModalOpen] = useState(false);
   const [productoEditar, setProductoEditar] = useState<Producto | undefined>(undefined);
 
-  // Cargar categorías desde la BD
   const fetchCategorias = async () => {
     try {
       const data = await listarCategorias();

@@ -25,11 +25,14 @@ import RequireAdminAuth from "@/guards/requireAdminAuth";
 import PaginaCatalogo from "@/pages/landing/productosCatalogo";
 import LayoutCatalogo from "@/layout/layoutCatalogo";
 import Checkout from "@/pages/client/chekout";
+import AuthCallback from "@/pages/client/authCallback";
 
 const AppRoutes = () => {
   return (
     <Suspense>
       <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
         {/* Rutas: layout PageWeb */}
         <Route path="/" element={<LayoutPage />}>
           <Route index element={<Inicio />} />
@@ -63,7 +66,8 @@ const AppRoutes = () => {
           <Route index element={<Dashboard />} />
           <Route path="gestion/productos" element={<GestionProductos />} />
           <Route path="gestion/categorias" element={<GestionCategorias />} />
-          <Route path="usuarios/clientes" element={<GestionClientes />} />          <Route path="ventas/pedidos" element={<GestionPedidos />} />
+          <Route path="usuarios/clientes" element={<GestionClientes />} />{" "}
+          <Route path="ventas/pedidos" element={<GestionPedidos />} />
           <Route path="ventas/analisis" element={<Analisis />} />
         </Route>
       </Routes>

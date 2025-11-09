@@ -41,7 +41,7 @@ public class Producto {
     @Column(nullable = false, length = 15)
     private Estado estado = Estado.Disponible;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JsonBackReference
     @JoinColumn(name = "id_subcat", nullable = false)
     private SubCategoria subcategoria; 

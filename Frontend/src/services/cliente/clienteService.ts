@@ -1,6 +1,5 @@
 import type { Cliente } from "@/types/cliente";
-
-const BASE_URL = "http://localhost:8080/api/clientes";
+import api from "@/utils/axiomInstance";
 
 interface ClienteAPI {
   idCliente: number;
@@ -15,40 +14,45 @@ interface ClienteAPI {
 }
 
 export async function listarClientes(): Promise<Cliente[]> {
-  const res = await fetch(BASE_URL, { method: "GET" });
-  if (!res.ok) throw new Error("Error al cargar clientes");
-  const data: ClienteAPI[] = await res.json();
-  
-  return data.map((cliente) => ({
-    ...cliente,
-    estado: cliente.estado === "activo" ? "Activo" : "Inactivo",
-    gastoTotal: "S/. 0.00", 
-  }));
+  try {
+    const res = await api.get<ClienteAPI[]>("/api/clientes");
+    return res.data.map((cliente) => ({
+      ...cliente,
+      estado: cliente.estado === "activo" ? "Activo" : "Inactivo",
+      gastoTotal: "S/. 0.00", 
+    }));
+  } catch (error: unknown) {
+    console.error("Error al cargar clientes:", error);
+    throw new Error("Error al cargar clientes");
+  }
 }
 
 export async function getClienteLogueado(): Promise<Cliente> {
-  const res = await fetch("http://localhost:8080/api/usuarios/me", {
-    method: "GET",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("No hay sesión activa");
-  return await res.json();
+  try {
+    const res = await api.get<Cliente>("/api/usuarios/me", { withCredentials: true });
+    return res.data;
+  } catch (error: unknown) {
+    console.error("No hay sesión activa:", error);
+    throw new Error("No hay sesión activa");
+  }
 }
 
 export async function actualizarCliente(cliente: Cliente): Promise<Cliente> {
-  const res = await fetch(`${BASE_URL}/${cliente.idCliente}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      nomCli: cliente.nombre,
-      apeCli: cliente.apellido,
-      correoCli: cliente.correo,
-      telCli: cliente.telefono,
-    }),
-  });
+  try {
+    const res = await api.put<{ cliente: Cliente }>(
+      `/api/clientes/${cliente.idCliente}`,
+      {
+        nomCli: cliente.nombre,
+        apeCli: cliente.apellido,
+        correoCli: cliente.correo,
+        telCli: cliente.telefono,
+      },
+      { withCredentials: true }
+    );
 
-  if (!res.ok) throw new Error("Error al actualizar cliente");
-  const data = await res.json();
-  return data.cliente || cliente;
+    return res.data.cliente || cliente;
+  } catch (error: unknown) {
+    console.error("Error al actualizar cliente:", error);
+    throw new Error("Error al actualizar cliente");
+  }
 }

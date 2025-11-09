@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import DynamicForm from "../common/dynamicForm";
+import { mapBackendToCliente } from "@/utils/clienteMapper";
 import type { FieldConfig } from "../common/dynamicForm";
 import type { Cliente } from "@/types/cliente";
 import {
@@ -10,20 +11,6 @@ import {
 const ProfileCard = () => {
   const [editMode, setEditMode] = useState(false);
   const [cliente, setCliente] = useState<Cliente | null>(null);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapBackendToCliente = (data: any): Cliente => ({
-    idCliente: data.idCliente,
-    nombre: data.nomCli,
-    apellido: data.apeCli,
-    correo: data.correoCli,
-    telefono: data.telCli,
-    estado: data.estado,
-    fechaRegistro: data.fechaRegistro,
-    gastoTotal: data.gastoTotal,
-    usuario: data.usuario,
-    rol: data.rol,
-  });
 
   useEffect(() => {
     const cargarCliente = async () => {

@@ -35,7 +35,7 @@ public class ProductoController {
     
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listarProductos() {
-        var productos = productoService.listarTodos().stream().map(p -> {
+        var productos = productoService.listarTodosConRelaciones().stream().map(p -> {
             Map<String, Object> map = new HashMap<>();
             map.put("idProd", p.getIdProd());
             map.put("nombre", p.getNomProd());

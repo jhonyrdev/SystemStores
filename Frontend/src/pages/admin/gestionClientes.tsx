@@ -10,7 +10,7 @@ const GestionClientes = () => {
   const [clientes, setClientes] = React.useState<Cliente[]>([]);
   const [filtered, setFiltered] = React.useState<Cliente[]>([]);
   const [page, setPage] = React.useState(1);
-  const perPage = 5;
+  const perPage = 10;
 
   useEffect(() => {
   const fetchData = async () => {

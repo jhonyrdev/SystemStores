@@ -18,7 +18,7 @@ public class RegistroService {
 
     private static final AtomicInteger SECUENCIA = new AtomicInteger(0);
 
-    private String generarCodigoClienteUnico() {
+    public String generarCodigoClienteUnico() {
         long tiempo = System.currentTimeMillis();
         int sec = SECUENCIA.getAndIncrement() % 10000;
         String numero = String.format("%013d%04d", tiempo, sec);
