@@ -1,5 +1,6 @@
 package com.magicGroup.backend.Controller.ventasController;
 
+import com.magicGroup.backend.model.ventas.Pedido;
 import com.magicGroup.backend.services.ventasServices.ventasServicesImpl.PedidoServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,89 @@ public class PedidoController {
     
     private final PedidoServiceImpl pedidoService;
     private final ObjectMapper objectMapper;
+    
+    @GetMapping("/cliente/{clienteId}")
+    public ResponseEntity<List<Pedido>> obtenerPedidosPorCliente(@PathVariable Integer clienteId) {
+        try {
+            List<Pedido> pedidos = pedidoService.obtenerPedidosPorCliente(clienteId);
+            return ResponseEntity.ok(pedidos);
+        } catch (Exception e) {
+            System.err.println("Error al obtener pedidos del cliente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    @PutMapping("/cancelar/{idPedido}")
+    public ResponseEntity<Map<String, Object>> cancelarPedido(@PathVariable Integer idPedido) {
+        try {
+            pedidoService.cancelarPedido(idPedido);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("mensaje", "Pedido cancelado correctamente");
+            response.put("id_ped", idPedido);
+            response.put("estado", "Rechazado");
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error de validación");
+            errorResponse.put("mensaje", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            System.err.println("Error al cancelar pedido: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error al cancelar pedido");
+            errorResponse.put("mensaje", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+    
+    @GetMapping("/todos")
+    public ResponseEntity<List<Pedido>> obtenerTodosPedidos() {
+        try {
+            List<Pedido> pedidos = pedidoService.listarTodos();
+            return ResponseEntity.ok(pedidos);
+        } catch (Exception e) {
+            System.err.println("Error al obtener todos los pedidos: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    @PutMapping("/actualizar-estado/{idPedido}")
+    public ResponseEntity<Map<String, Object>> actualizarEstadoPedido(
+            @PathVariable Integer idPedido,
+            @RequestBody Map<String, String> body) {
+        try {
+            String nuevoEstado = body.get("estado");
+            if (nuevoEstado == null || nuevoEstado.isEmpty()) {
+                throw new IllegalArgumentException("El estado es requerido");
+            }
+            
+            pedidoService.actualizarEstado(idPedido, nuevoEstado);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("mensaje", "Estado del pedido actualizado correctamente");
+            response.put("id_ped", idPedido);
+            response.put("estado", nuevoEstado);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error de validación");
+            errorResponse.put("mensaje", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            System.err.println("Error al actualizar estado del pedido: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error al actualizar estado");
+            errorResponse.put("mensaje", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
     
     @PostMapping("/registrar")
     public ResponseEntity<Map<String, Object>> registrarPedido(@RequestBody Map<String, Object> body) {

@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@components/ui/button";
 import { DynamicTable } from "@components/common/dataTable";
 import TableFiltro from "@components/common/tableFiltro";
@@ -6,72 +6,144 @@ import TablePaginas from "@components/common/tablePaginas";
 import { Badge } from "@components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
+import { obtenerTodosPedidos, actualizarEstadoPedido } from "@/services/ventas/pedidoService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Pedido {
-  id: string;
-  cliente: string;
+  idPed: number;
+  cliente: {
+    nomCli: string;
+    apeCli: string;
+  };
   fecha: string;
-  estado: "Pendiente" | "Enviado" | "Entregado" | "Cancelado";
-  monto: string;
+  estado: "Nuevo" | "Realizado" | "Rechazado";
+  total: number;
 }
 
-const allData: Pedido[] = [
-  {
-    id: "PED-001",
-    cliente: "Juan Pérez",
-    fecha: "2025-10-01",
-    estado: "Pendiente",
-    monto: "$120.00",
-  }
-];
-
-const columns: ColumnDef<Pedido>[] = [
-  { accessorKey: "id", header: "ID Pedido" },
-  { accessorKey: "cliente", header: "Cliente" },
-  { accessorKey: "fecha", header: "Fecha" },
-  {
-    accessorKey: "estado",
-    header: "Estado",
-    cell: ({ row }) => {
-      const value = row.getValue("estado") as Pedido["estado"];
-      const color =
-        value === "Pendiente"
-          ? "bg-yellow-100 text-yellow-700"
-          : value === "Enviado"
-          ? "bg-blue-100 text-blue-700"
-          : value === "Entregado"
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700";
-      return <Badge className={color}>{value}</Badge>;
-    },
-  },
-  { accessorKey: "monto", header: "Monto Total" },
-  {
-    id: "acciones",
-    header: "Acciones",
-    cell: () => (
-      <span className="text-blue-600 hover:underline cursor-pointer">
-        Ver detalles
-      </span>
-    ),
-  },
-];
-
 const GestionPedidos = () => {
-  const [page, setPage] = React.useState(1);
-  const [filtered, setFiltered] = React.useState(allData);
-  const perPage = 5;
+  const [allData, setAllData] = useState<Pedido[]>([]);
+  const [filtered, setFiltered] = useState<Pedido[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const perPage = 10;
   const totalPages = Math.ceil(filtered.length / perPage);
 
   const paginatedData = filtered.slice((page - 1) * perPage, page * perPage);
 
+  useEffect(() => {
+    cargarPedidos();
+  }, []);
+
+  const cargarPedidos = async () => {
+    try {
+      setLoading(true);
+      const pedidos = await obtenerTodosPedidos();
+      setAllData(pedidos);
+      setFiltered(pedidos);
+    } catch (error) {
+      console.error("Error al cargar pedidos:", error);
+      alert("Error al cargar los pedidos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCambiarEstado = async (idPedido: number, nuevoEstado: string) => {
+    try {
+      await actualizarEstadoPedido(idPedido, nuevoEstado);
+      // Recargar pedidos
+      await cargarPedidos();
+      alert("Estado actualizado correctamente");
+    } catch (error) {
+      console.error("Error al actualizar estado:", error);
+      alert("Error al actualizar el estado del pedido");
+    }
+  };
+
+  const columns: ColumnDef<Pedido>[] = [
+    { 
+      accessorKey: "idPed", 
+      header: "ID Pedido",
+      cell: ({ row }) => `#${row.getValue("idPed")}`
+    },
+    { 
+      accessorKey: "cliente", 
+      header: "Cliente",
+      cell: ({ row }) => {
+        const cliente = row.getValue("cliente") as Pedido["cliente"];
+        return `${cliente.nomCli} ${cliente.apeCli}`;
+      }
+    },
+    { 
+      accessorKey: "fecha", 
+      header: "Fecha",
+      cell: ({ row }) => new Date(row.getValue("fecha")).toLocaleDateString()
+    },
+    {
+      accessorKey: "estado",
+      header: "Estado",
+      cell: ({ row }) => {
+        const value = row.getValue("estado") as Pedido["estado"];
+        const color =
+          value === "Nuevo"
+            ? "bg-yellow-100 text-yellow-700"
+            : value === "Realizado"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700";
+        return <Badge className={color}>{value}</Badge>;
+      },
+    },
+    { 
+      accessorKey: "total", 
+      header: "Monto Total",
+      cell: ({ row }) => `S/ ${Number(row.getValue("total")).toFixed(2)}`
+    },
+    {
+      id: "acciones",
+      header: "Acciones",
+      cell: ({ row }) => {
+        const pedido = row.original;
+        return (
+          <Select
+            value={pedido.estado}
+            onValueChange={(value) => handleCambiarEstado(pedido.idPed, value)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Cambiar estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Nuevo">Nuevo</SelectItem>
+              <SelectItem value="Realizado">Realizado</SelectItem>
+              <SelectItem value="Rechazado">Rechazado</SelectItem>
+            </SelectContent>
+          </Select>
+        );
+      },
+    },
+  ];
+
   const handleSearch = (value: string) => {
     const res = allData.filter((p) =>
-      p.cliente.toLowerCase().includes(value.toLowerCase())
+      `${p.cliente.nomCli} ${p.cliente.apeCli}`.toLowerCase().includes(value.toLowerCase())
     );
     setFiltered(res);
     setPage(1);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 pb-20">
+        <h1 className="text-2xl font-semibold">Pedidos</h1>
+        <p className="text-gray-500">Cargando pedidos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">
@@ -88,12 +160,12 @@ const GestionPedidos = () => {
       {/* Contenedor principal */}
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <TableFiltro
-          searchPlaceholder="Buscar pedidos..."
+          searchPlaceholder="Buscar por cliente..."
           onSearch={handleSearch}
           filterGroups={[
             {
               label: "Estado",
-              items: ["Pendiente", "Enviado", "Entregado", "Cancelado"],
+              items: ["Nuevo", "Realizado", "Rechazado"],
             },
           ]}
         />

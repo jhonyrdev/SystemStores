@@ -1,6 +1,7 @@
 
 package com.magicGroup.backend.model.usuarios;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -40,6 +41,7 @@ public class Cliente {
 
     @OneToOne
     @JoinColumn(name = "id_cred")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Credencial credencial;
 
     public enum Estado {

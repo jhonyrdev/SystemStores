@@ -1,6 +1,7 @@
 
 package com.magicGroup.backend.model.extras;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.magicGroup.backend.model.usuarios.Cliente;
 import jakarta.persistence.*;           
 import lombok.*; 
@@ -26,6 +27,7 @@ public class Direccion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cli", nullable = false)
+    @JsonIgnoreProperties({"credencial", "hibernateLazyInitializer", "handler"})
     private Cliente cliente;
 
 	public enum Tipo {

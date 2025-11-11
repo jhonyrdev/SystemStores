@@ -1,61 +1,121 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Eye, XCircle } from "lucide-react";
+import { obtenerPedidosPorCliente, cancelarPedido } from "@/services/ventas/pedidoService";
 
 // Definición de la interfaz Pedido
 interface Pedido {
-  id: string;
+  idPed: number;
   fecha: string;
   total: number;
-  estado: "Nuevo" | "Entregado" | "Rechazado";
+  estado: "Nuevo" | "Realizado" | "Rechazado";
+}
+
+interface Usuario {
+  idCliente?: number;
+  idCli?: number;
 }
 
 const PedidosCard = () => {
   const [verHistorial, setVerHistorial] = useState(false);
   const [pedidosActivos, setPedidosActivos] = useState<Pedido[]>([]);
   const [historialPedidos, setHistorialPedidos] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true); // Estado para manejar la carga de datos
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const clienteId = 1; // ID del cliente (esto debería ser dinámico según el usuario logueado)
-
-  // Fetch de los pedidos
   useEffect(() => {
-   const fetchPedidos = async () => {
-  try {
-    const response = await fetch("http://localhost:8080/api/pedidos/cliente/1");
-    if (!response.ok) {
-      throw new Error(`Error al obtener los pedidos: ${response.statusText}`);
+    const cargarPedidos = async () => {
+      try {
+        setLoading(true);
+        
+        // Obtener datos del usuario del localStorage
+        const storedUser = localStorage.getItem("usuario");
+        if (!storedUser) {
+          setError("Usuario no autenticado");
+          setLoading(false);
+          return;
+        }
+        
+        const usuario: Usuario = JSON.parse(storedUser);
+        const clienteId = usuario.idCliente || usuario.idCli;
+        
+        if (!clienteId) {
+          setError("No se encontró el ID del cliente");
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Cargando pedidos para cliente:", clienteId);
+        const pedidos = await obtenerPedidosPorCliente(clienteId);
+        console.log("Pedidos obtenidos:", pedidos);
+        
+        // Separar pedidos activos de historial
+        const activos = pedidos.filter(p => p.estado === "Nuevo" || p.estado === "Realizado");
+        const historial = pedidos.filter(p => p.estado === "Rechazado" || p.estado === "Realizado");
+        
+        setPedidosActivos(activos);
+        setHistorialPedidos(historial);
+        setError(null);
+      } catch (err) {
+        console.error("Error al cargar pedidos:", err);
+        setError("Error al cargar los pedidos. Por favor intenta de nuevo.");
+        setPedidosActivos([]);
+        setHistorialPedidos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarPedidos();
+  }, []);
+
+  const handleCancelarPedido = async (id: number) => {
+    if (!window.confirm("¿Estás seguro de que deseas cancelar este pedido?")) {
+      return;
     }
 
-    const data = await response.json();
-
-    // Verificar que 'data' sea un array válido
-    if (!Array.isArray(data)) {
-      throw new Error("Los datos no tienen el formato esperado.");
+    try {
+      await cancelarPedido(id);
+      
+      // Actualizar el estado local removiendo el pedido cancelado de activos
+      setPedidosActivos(prev => prev.filter(p => p.idPed !== id));
+      
+      // Recargar pedidos para reflejar el cambio
+      const storedUser = localStorage.getItem("usuario");
+      if (storedUser) {
+        const usuario: Usuario = JSON.parse(storedUser);
+        const clienteId = usuario.idCliente || usuario.idCli;
+        if (clienteId) {
+          const pedidos = await obtenerPedidosPorCliente(clienteId);
+          const activos = pedidos.filter(p => p.estado === "Nuevo" || p.estado === "Realizado");
+          const historial = pedidos.filter(p => p.estado === "Rechazado" || p.estado === "Realizado");
+          setPedidosActivos(activos);
+          setHistorialPedidos(historial);
+        }
+      }
+      
+      alert("Pedido cancelado correctamente");
+    } catch (err) {
+      console.error("Error al cancelar pedido:", err);
+      alert("Error al cancelar el pedido. Por favor intenta de nuevo.");
     }
-
-    // Separar los pedidos activos y el historial de pedidos
-    const activos = data.filter((pedido: Pedido) => pedido.estado === "Nuevo");
-    const historial = data.filter((pedido: Pedido) => pedido.estado !== "Nuevo");
-
-    setPedidosActivos(activos);
-    setHistorialPedidos(historial);
-  } catch (error) {
-    console.error("Error al obtener los pedidos:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-    fetchPedidos();
-  }, [clienteId]);
-
-  const cancelarPedido = (id: string) => {
-    // Aquí va la lógica para cancelar/rechazar el pedido (ej. llamada a API)
-    alert(`Pedido ${id} cancelado`);
-    // Opcional: Actualizar la UI tras la cancelación
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl lg:max-w-4xl mx-auto p-4 border rounded shadow">
+        <p className="text-center text-gray-500">Cargando pedidos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-2xl lg:max-w-4xl mx-auto p-4 border rounded shadow">
+        <p className="text-center text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl lg:max-w-4xl mx-auto p-4 border rounded shadow space-y-4">
@@ -77,22 +137,20 @@ const PedidosCard = () => {
         </Button>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-gray-500">Cargando pedidos...</p>
-      ) : verHistorial ? (
+      {verHistorial ? (
         historialPedidos.length === 0 ? (
           <p className="text-sm text-gray-500">No hay historial de pedidos.</p>
         ) : (
           historialPedidos.map((pedido) => (
-            <div key={pedido.id} className="border p-3 rounded bg-gray-50 space-y-1">
+            <div key={pedido.idPed} className="border p-3 rounded bg-gray-50 space-y-1">
               <p className="text-sm text-gray-800">
-                <strong>ID Pedido:</strong> {pedido.id}
+                <strong>ID Pedido:</strong> {pedido.idPed}
               </p>
               <p className="text-sm text-gray-800">
                 <strong>Fecha:</strong> {pedido.fecha}
               </p>
               <p className="text-sm text-gray-800">
-                <strong>Total:</strong> ${pedido.total.toFixed(2)}
+                <strong>Total:</strong> S/ {pedido.total.toFixed(2)}
               </p>
               <p className="text-sm text-gray-800">
                 <strong>Estado:</strong> {pedido.estado}
@@ -109,16 +167,16 @@ const PedidosCard = () => {
         <p className="text-sm text-gray-500">No tienes pedidos activos.</p>
       ) : (
         pedidosActivos.map((pedido) => (
-          <div key={pedido.id} className="border p-3 rounded bg-white space-y-2">
+          <div key={pedido.idPed} className="border p-3 rounded bg-white space-y-2">
             <div className="space-y-1">
               <p className="text-sm text-gray-800">
-                <strong>ID Pedido:</strong> {pedido.id}
+                <strong>ID Pedido:</strong> {pedido.idPed}
               </p>
               <p className="text-sm text-gray-800">
                 <strong>Fecha:</strong> {pedido.fecha}
               </p>
               <p className="text-sm text-gray-800">
-                <strong>Total:</strong> ${pedido.total.toFixed(2)}
+                <strong>Total:</strong> S/ {pedido.total.toFixed(2)}
               </p>
               <p className="text-sm text-gray-800">
                 <strong>Estado:</strong> {pedido.estado}
@@ -128,7 +186,7 @@ const PedidosCard = () => {
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => cancelarPedido(pedido.id)}
+              onClick={() => handleCancelarPedido(pedido.idPed)}
               className="flex items-center gap-1"
             >
               <XCircle className="w-4 h-4" />
