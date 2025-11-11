@@ -125,10 +125,9 @@ const PedidosCard = () => {
         </h2>
 
         <Button
-          variant="default"
           size="sm"
           onClick={() => setVerHistorial(!verHistorial)}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 bg-secundario text-black"
         >
           <Eye className="w-4 h-4" />
           <span className="hidden md:inline">

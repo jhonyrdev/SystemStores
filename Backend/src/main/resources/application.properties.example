@@ -11,3 +11,7 @@ spring.datasource.driver-class-name={driverDB}
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+app.google.client-id=TU_CLIENT_ID_REAL
+app.google.client-secret=TU_CLIENT_SECRET_REAL
+app.google.redirect-uri=http://localhost:{puerto}/{...}

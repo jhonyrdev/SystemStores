@@ -20,7 +20,6 @@ public class SecurityConfig {
 						.permitAll()
 						.anyRequest().authenticated()
 				)
-				// Quitamos formLogin y httpBasic para login REST
 				.logout(logout -> logout
 						.logoutUrl("/api/usuarios/logout")
 						.invalidateHttpSession(true)

@@ -1,75 +1,80 @@
 import type { Producto, ProductoFormData } from "@/types/product";
+import api from "@/utils/axiomInstance";
 
-const BASE_URL = "http://localhost:8080/api/productos";
-
-// Listar todos los productos
 export async function listarProductos(): Promise<Producto[]> {
-  const res = await fetch(BASE_URL, { method: "GET" });
-  if (!res.ok) throw new Error("Error al cargar productos");
-  return await res.json();
+  try {
+    const res = await api.get<Producto[]>("/api/productos");
+    return res.data;
+  } catch (error: unknown) {
+    console.error("Error al cargar productos:", error);
+    throw new Error("Error al cargar productos");
+  }
 }
 
-// Registrar nuevo producto
-export async function registrarProducto(data: ProductoFormData) {
-  const formData = new FormData();
-  formData.append("nomProd", data.nomProd);
-  formData.append("categoria", data.categoria);
-  formData.append("subcategoria", data.subcategoria); 
-  formData.append("precioProd", data.precioProd.toString());
-  formData.append("cantProd", data.cantProd.toString());
+export async function registrarProducto(data: ProductoFormData): Promise<Producto> {
+  try {
+    const formData = new FormData();
+    formData.append("nomProd", data.nomProd);
+    formData.append("categoria", data.categoria);
+    formData.append("subcategoria", data.subcategoria);
+    formData.append("precioProd", data.precioProd.toString());
+    formData.append("cantProd", data.cantProd.toString());
 
-  if (data.marca) formData.append("marca", data.marca); 
-  if (data.unidad) formData.append("unidad", data.unidad);
-  if (data.imagen) formData.append("imagen", data.imagen); 
+    if (data.marca) formData.append("marca", data.marca);
+    if (data.unidad) formData.append("unidad", data.unidad);
+    if (data.imagen) formData.append("imagen", data.imagen);
 
-  const res = await fetch(BASE_URL, {
-    method: "POST",
-    body: formData,
-  });
+    const res = await api.post<Producto>("/api/productos", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Error al registrar producto");
+    return res.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error al registrar producto:", error.message);
+      throw new Error(error.message || "Error al registrar producto");
+    }
+    throw new Error("Error al registrar producto");
   }
-
-  return await res.json();
 }
 
-// Actualizar producto existente
-export async function actualizarProducto(id: number, data: ProductoFormData) {
-  const formData = new FormData();
-  formData.append("nomProd", data.nomProd);
-  formData.append("categoria", data.categoria);
-  formData.append("precioProd", data.precioProd.toString());
-  formData.append("cantProd", data.cantProd.toString());
-  formData.append("subcategoria", data.subcategoria); 
+export async function actualizarProducto(id: number, data: ProductoFormData): Promise<Producto> {
+  try {
+    const formData = new FormData();
+    formData.append("nomProd", data.nomProd);
+    formData.append("categoria", data.categoria);
+    formData.append("subcategoria", data.subcategoria);
+    formData.append("precioProd", data.precioProd.toString());
+    formData.append("cantProd", data.cantProd.toString());
 
-  if (data.marca) formData.append("marca", data.marca);
-  if (data.unidad) formData.append("unidad", data.unidad);
-  if (data.imagen) formData.append("imagen", data.imagen);
-  const res = await fetch(`${BASE_URL}/${id}`, {
-    method: "PUT",
-    body: formData,
-  });
+    if (data.marca) formData.append("marca", data.marca);
+    if (data.unidad) formData.append("unidad", data.unidad);
+    if (data.imagen) formData.append("imagen", data.imagen);
 
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Error al actualizar producto");
+    const res = await api.put<Producto>(`/api/productos/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error al actualizar producto:", error.message);
+      throw new Error(error.message || "Error al actualizar producto");
+    }
+    throw new Error("Error al actualizar producto");
   }
-
-  return await res.json();
 }
 
 // Eliminar producto
-export async function eliminarProducto(id: number) {
-  const res = await fetch(`${BASE_URL}/${id}`, {
-    method: "DELETE",
-  });
-
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Error al eliminar producto");
+export async function eliminarProducto(id: number): Promise<{ message: string }> {
+  try {
+    const res = await api.delete<{ message: string }>(`/api/productos/${id}`);
+    return res.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error al eliminar producto:", error.message);
+      throw new Error(error.message || "Error al eliminar producto");
+    }
+    throw new Error("Error al eliminar producto");
   }
-
-  return await res.json();
 }

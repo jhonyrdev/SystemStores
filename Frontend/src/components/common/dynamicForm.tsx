@@ -1,4 +1,6 @@
 import React, { useState, useEffect, type JSX } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { MdOutlineMail as SiMicrosoftoutlook } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,10 +36,16 @@ interface DynamicFormProps {
   title?: string;
   fields: FieldConfig[];
   submitLabel?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (data: Record<string, any>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialValues?: Record<string, any>;
   showPasswordStrength?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onChangeField?: (name: string, value: any) => void;
+  onGoogleLogin?: () => void;
+  onOutlookLogin?: () => void;
+  showSocialButtons?: boolean;
 }
 
 const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -48,7 +56,11 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   initialValues = {},
   showPasswordStrength,
   onChangeField,
+  onGoogleLogin,
+  onOutlookLogin,
+  showSocialButtons,
 }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -105,7 +117,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
     <form onSubmit={handleSubmit} className="w-full space-y-5">
       {title && <h2 className="text-xl font-semibold text-center">{title}</h2>}
 
-      {/* Contenedor scroll vertical SOLO para campos */}
       <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] md:max-h-[70vh] w-full pr-2">
         <div className="space-y-5">
           {fields.reduce<JSX.Element[]>((acc, field, index, arr) => {
@@ -225,7 +236,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
               return acc;
             }
 
-            // Render estándar para otros campos
             acc.push(
               <div key={field.name} className="w-full space-y-2">
                 <Label htmlFor={field.name}>{field.label}</Label>
@@ -328,9 +338,44 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
       </div>
 
       {/* Botón fuera del scroll */}
-      <Button type="submit" className="w-full">
+      <Button
+        type="submit"
+        className="w-full bg-secundario text-black hover:text-[#5e0956]"
+      >
         {submitLabel}
       </Button>
+
+      {showSocialButtons && (
+        <>
+          <div className="flex items-center justify-center gap-3 my-2">
+            <div className="h-px bg-gray-300 w-full"></div>
+            <span className="text-sm text-gray-500">o</span>
+            <div className="h-px bg-gray-300 w-full"></div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onGoogleLogin}
+              className="flex-1 border-gray-300 flex items-center justify-center gap-2"
+            >
+              <FcGoogle className="w-5 h-5" />
+              Iniciar con Google
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOutlookLogin}
+              className="flex-1 border-gray-300 flex items-center justify-center gap-2 text-blue-600"
+            >
+              <SiMicrosoftoutlook className="w-5 h-5" />
+              Iniciar con Outlook
+            </Button>
+          </div>
+        </>
+      )}
     </form>
   );
 };

@@ -21,7 +21,7 @@ public class SubCategoria {
     @Column(name = "nom_subcat", nullable = false, length = 45)
     private String nomSubcat;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_cat", nullable = false)
     private Categoria categoria;
 

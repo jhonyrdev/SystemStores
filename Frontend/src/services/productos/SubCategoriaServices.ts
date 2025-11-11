@@ -1,8 +1,6 @@
-const BASE_URL = "http://localhost:8080/api/subcategorias";
+import api from "@/utils/axiomInstance";
 
-// Obtiene subcategorías por ID de categoría
 export async function listarSubcategoriasPorCategoria(idCat: number) {
-  const res = await fetch(`${BASE_URL}/por-categoria/${idCat}`);
-  if (!res.ok) throw new Error(`Error al obtener subcategorías de la categoría ${idCat}`);
-  return await res.json();
+  const res = await api.get(`/api/subcategorias/por-categoria/${idCat}`);
+  return res.data;
 }

@@ -6,6 +6,7 @@ import com.magicGroup.backend.services.GenericServiceImpl;
 import com.magicGroup.backend.services.productosServices.ProductoService;
 import org.springframework.stereotype.Service;
 import java.text.DecimalFormat;
+import java.util.List;
 
 @Service
 public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer> 
@@ -71,5 +72,10 @@ public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
         }
         calcularYAsignarEstado(p);
         return repo.save(p);
+    }
+
+    @Override
+    public List<Producto> listarTodosConRelaciones() {
+        return repo.findAllWithRelations();
     }
 }
