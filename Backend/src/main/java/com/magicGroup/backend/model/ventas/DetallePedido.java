@@ -19,6 +19,7 @@ public class DetallePedido {
 
     @ManyToOne
     @JoinColumn(name = "id_ped", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private Pedido pedido;
 
     @ManyToOne

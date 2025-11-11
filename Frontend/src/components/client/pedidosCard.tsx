@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Eye, XCircle } from "lucide-react";
 import { obtenerPedidosPorCliente } from "@/services/ventas/pedidoService";
+import { getClienteLogueado } from "@/services/cliente/clienteService";
 
 // Definición de la interfaz Pedido
 interface Pedido {
@@ -30,22 +31,39 @@ const PedidosCard = () => {
         
         // Obtener datos del usuario del localStorage
         const storedUser = localStorage.getItem("usuario");
-        if (!storedUser) {
-          setError("Usuario no autenticado");
-          setLoading(false);
-          return;
+        let clienteId: number | undefined;
+
+        if (storedUser) {
+          try {
+            const usuario: Usuario = JSON.parse(storedUser);
+            clienteId = usuario.idCliente || usuario.idCli;
+          } catch (e) {
+            // localStorage corrupto: limpiarlo y tratar de obtener datos desde el backend
+            console.warn("localStorage.usuario inválido, se obtendrá desde el servidor:", e);
+            localStorage.removeItem("usuario");
+          }
         }
-        
-        const usuario: Usuario = JSON.parse(storedUser);
-        const clienteId = usuario.idCliente || usuario.idCli;
-        
+
         if (!clienteId) {
-          setError("No se encontró el ID del cliente");
-          setLoading(false);
-          return;
+          // Intentar obtener el usuario logueado desde el backend
+          try {
+            const usuarioBackend: any = await getClienteLogueado();
+            // algunos endpoints devuelven idCliente o idCli, adaptamos
+            clienteId = usuarioBackend.idCliente || usuarioBackend.idCli || usuarioBackend.idCli;
+            // Guardar en localStorage para próximas veces
+            try {
+              localStorage.setItem("usuario", JSON.stringify(usuarioBackend));
+            } catch (err) {
+              console.warn("No se pudo guardar usuario en localStorage:", err);
+            }
+          } catch (err) {
+            setError("Usuario no autenticado");
+            setLoading(false);
+            return;
+          }
         }
         
-        const pedidos = await obtenerPedidosPorCliente(clienteId);
+  const pedidos = await obtenerPedidosPorCliente(clienteId as number);
         
         // Separar pedidos activos de historial
         const activos = pedidos.filter(p => p.estado === "Nuevo" || p.estado === "Realizado");

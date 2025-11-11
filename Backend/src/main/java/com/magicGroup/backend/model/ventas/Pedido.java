@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "Pedido")
@@ -42,6 +43,7 @@ public class Pedido {
 	private BigDecimal total;
 
 	@OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference
 	private List<DetallePedido> detallePedidos = new ArrayList<>();
 
 	public enum TipoEntrega {

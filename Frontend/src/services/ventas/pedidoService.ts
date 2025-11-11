@@ -3,11 +3,22 @@ import type { PedidoRequest, PedidoResponse } from '@/types/ventas';
 const API_URL = 'http://localhost:8080/api/pedidos';
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Error en la solicitud al servidor');
+    // adjuntar el body crudo para facilitar debug
+    const message = text || response.statusText || 'Error en la solicitud al servidor';
+    throw new Error(message);
   }
-  return response.json() as Promise<T>;
+
+  try {
+    // intentar parsear el texto a JSON
+    return JSON.parse(text) as T;
+  } catch (err) {
+    // incluir el body crudo en el error para identificar contenido inválido
+    const safe = text.length > 1000 ? text.slice(0, 1000) + '... (truncated)' : text;
+    throw new SyntaxError(`Error parseando JSON de ${response.url}: ${err instanceof Error ? err.message : err} - body: ${safe}`);
+  }
 }
 
 export async function registrarPedido(
