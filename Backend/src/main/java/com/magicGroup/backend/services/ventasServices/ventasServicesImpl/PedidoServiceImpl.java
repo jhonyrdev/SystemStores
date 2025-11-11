@@ -8,16 +8,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class PedidoServiceImpl extends GenericServiceImpl<Pedido, Integer> implements PedidoService {
     
 
-    private final EntityManager entityManager; 
+    private final EntityManager entityManager;
+    private final PedidoRepository pedidoRepository;
     
     public PedidoServiceImpl(PedidoRepository pedidoRepository, EntityManager entityManager) {
         super(pedidoRepository);
+        this.pedidoRepository = pedidoRepository;
         this.entityManager = entityManager;
+    }
+    
+    @Override
+    public List<Pedido> obtenerPedidosPorCliente(Integer clienteId) {
+        return pedidoRepository.findByClienteId(clienteId);
     }
     
     @Transactional
