@@ -1,5 +1,6 @@
 package com.magicGroup.backend.model.ventas;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.magicGroup.backend.model.productos.Producto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,10 +20,12 @@ public class DetallePedido {
 
     @ManyToOne
     @JoinColumn(name = "id_ped", nullable = false)
+    @JsonIgnoreProperties({"detallePedidos", "cliente", "direccion"})
     private Pedido pedido;
 
     @ManyToOne
     @JoinColumn(name = "id_prod", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Producto producto;
 
     @Column(nullable = false)

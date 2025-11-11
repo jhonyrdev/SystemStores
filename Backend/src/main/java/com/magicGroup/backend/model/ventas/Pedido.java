@@ -1,5 +1,6 @@
 package com.magicGroup.backend.model.ventas;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.magicGroup.backend.model.usuarios.Cliente;
 import com.magicGroup.backend.model.extras.Direccion;
 import jakarta.persistence.*;
@@ -21,10 +22,12 @@ public class Pedido {
 
 	@ManyToOne
 	@JoinColumn(name = "id_cli", nullable = false)
+	@JsonIgnoreProperties({"credencial", "hibernateLazyInitializer", "handler"})
 	private Cliente cliente;
 
 	@ManyToOne
 	@JoinColumn(name = "id_dir", nullable = true)
+	@JsonIgnoreProperties({"cliente", "hibernateLazyInitializer", "handler"})
 	private Direccion direccion;
 
 	private LocalDate fecha;

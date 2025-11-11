@@ -8,16 +8,54 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class PedidoServiceImpl extends GenericServiceImpl<Pedido, Integer> implements PedidoService {
     
-
+    private final PedidoRepository pedidoRepository;
     private final EntityManager entityManager; 
     
     public PedidoServiceImpl(PedidoRepository pedidoRepository, EntityManager entityManager) {
         super(pedidoRepository);
+        this.pedidoRepository = pedidoRepository;
         this.entityManager = entityManager;
+    }
+    
+    @Override
+    public List<Pedido> obtenerPedidosPorCliente(Integer clienteId) {
+        return pedidoRepository.findByCliente_IdCli(clienteId);
+    }
+    
+    @Override
+    @Transactional
+    public void cancelarPedido(Integer idPedido) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+            .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + idPedido));
+        
+        // Solo se puede cancelar si está en estado "Nuevo"
+        if (pedido.getEstado() != Pedido.Estado.Nuevo) {
+            throw new IllegalArgumentException("Solo se pueden cancelar pedidos en estado 'Nuevo'");
+        }
+        
+        pedido.setEstado(Pedido.Estado.Rechazado);
+        pedidoRepository.save(pedido);
+    }
+    
+    @Override
+    @Transactional
+    public void actualizarEstado(Integer idPedido, String nuevoEstado) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+            .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + idPedido));
+        
+        try {
+            Pedido.Estado estado = Pedido.Estado.valueOf(nuevoEstado);
+            pedido.setEstado(estado);
+            pedidoRepository.save(pedido);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Estado inválido: " + nuevoEstado + 
+                ". Los estados válidos son: Nuevo, Realizado, Rechazado");
+        }
     }
     
     @Transactional
