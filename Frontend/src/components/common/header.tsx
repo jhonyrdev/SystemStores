@@ -68,7 +68,34 @@ const Header: React.FC = () => {
       } else {
         await register(name, email, password);
       }
-    } catch { /* empty */ }
+    } catch {
+      /* empty */
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+    const scope =
+      "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
+
+    const googleAuthUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}` +
+      `&redirect_uri=${redirectUri}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&access_type=offline` +
+      `&include_granted_scopes=true` +
+      `&prompt=consent`;
+
+    window.location.href = googleAuthUrl;
+  };
+
+  const handleOutlookLogin = () => {
+    toast.info("Inicio de sesión con Outlook", {
+      description: "Esta funcionalidad estará disponible próximamente",
+    });
   };
 
   return (
@@ -86,6 +113,9 @@ const Header: React.FC = () => {
           submitLabel={isLoginView ? "Iniciar Sesión" : "Registrarse"}
           onSubmit={handleSubmit}
           showPasswordStrength={!isLoginView}
+          onGoogleLogin={handleGoogleLogin}
+          onOutlookLogin={handleOutlookLogin}
+          showSocialButtons={true}
         />
 
         {/* Cambiar entre login y registro */}

@@ -1,9 +1,16 @@
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-  const res = await fetch("http://localhost:8080/api/usuarios/admin/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
+import api from "@/utils/axiomInstance";
 
-  return res.ok;
+interface VerifyAdminRequest {
+  password: string;
+}
+
+export async function verifyAdminPassword(password: string): Promise<boolean> {
+  const payload: VerifyAdminRequest = { password }; 
+  try {
+    await api.post("/api/usuarios/admin/verify", payload);
+    return true;
+  } catch (error: unknown) {
+    console.error("Error al verificar contraseña de admin:", error);
+    return false;
+  }
 }

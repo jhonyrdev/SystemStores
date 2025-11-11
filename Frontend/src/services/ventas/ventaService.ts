@@ -1,25 +1,19 @@
 import type { VentaRequest, VentaResponse } from '@/types/ventas';
-
-const API_URL = 'http://localhost:8080/api/ventas';
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Error en la solicitud al servidor');
-  }
-  return response.json() as Promise<T>;
-}
-
+import api from '@/utils/axiomInstance';
 
 export async function registrarVenta(
   venta: VentaRequest
 ): Promise<VentaResponse> {
-  const response = await fetch(`${API_URL}/registrar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(venta),
-  });
-
-  return handleResponse<VentaResponse>(response);
+  try {
+    const res = await api.post<VentaResponse>('/api/ventas/registrar', venta, {
+      withCredentials: true,
+    });
+    return res.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error al registrar venta:', error.message);
+      throw new Error(error.message || 'Error en la solicitud al servidor');
+    }
+    throw new Error('Error en la solicitud al servidor');
+  }
 }

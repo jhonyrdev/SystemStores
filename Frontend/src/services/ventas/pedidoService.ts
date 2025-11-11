@@ -1,24 +1,19 @@
 import type { PedidoRequest, PedidoResponse } from '@/types/ventas';
-
-const API_URL = 'http://localhost:8080/api/pedidos';
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Error en la solicitud al servidor');
-  }
-  return response.json() as Promise<T>;
-}
+import api from '@/utils/axiomInstance';
 
 export async function registrarPedido(
   pedido: PedidoRequest
 ): Promise<PedidoResponse> {
-  const response = await fetch(`${API_URL}/registrar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(pedido),
-  });
-
-  return handleResponse<PedidoResponse>(response);
+  try {
+    const res = await api.post<PedidoResponse>('/api/pedidos/registrar', pedido, {
+      withCredentials: true,
+    });
+    return res.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error al registrar pedido:', error.message);
+      throw new Error(error.message || 'Error en la solicitud al servidor');
+    }
+    throw new Error('Error en la solicitud al servidor');
+  }
 }

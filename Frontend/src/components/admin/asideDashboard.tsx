@@ -1,10 +1,4 @@
-import {
-  Home,
-  Box,
-  ShoppingCart,
-  Users,
-  ChevronDown,
-} from "lucide-react";
+import { Home, Box, ShoppingCart, Users, ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
@@ -27,10 +21,7 @@ const menuItems = [
   {
     label: "Usuarios",
     icon: <Users size={20} />,
-    links: [
-      { to: "/admin/usuarios/clientes", label: "Clientes" },
-      { to: "/admin/usuarios/reclamos", label: "Reclamos" },
-    ],
+    links: [{ to: "/admin/usuarios/clientes", label: "Clientes" }],
   },
   {
     label: "Ventas",
@@ -131,9 +122,7 @@ const AsideDashboard: React.FC<Props> = () => {
             className="w-10 h-10 rounded-full object-cover"
           />
           <div>
-            <p className="text-sm font-semibold text-white">
-              Admin | Mario R.
-            </p>
+            <p className="text-sm font-semibold text-white">Admin | Mario R.</p>
             <Button
               className="text-xs text-gray-200 bg-transparent hover:text-[#f2c32f] hover:bg-transparent"
               onClick={handleLogoutClick}

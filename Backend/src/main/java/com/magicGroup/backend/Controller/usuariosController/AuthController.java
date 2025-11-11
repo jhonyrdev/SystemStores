@@ -4,21 +4,22 @@ import com.magicGroup.backend.model.usuarios.Cliente;
 import com.magicGroup.backend.services.extrasServices.AuthService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.slf4j.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.*;
+
 import java.util.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/usuarios")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AuthController {
 
 	private final AuthService authService;
-
-	public AuthController(AuthService authService) {
-		this.authService = authService;
-	}
+	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 	// Login Cliente
 	@PostMapping("/loginCliente")
@@ -26,13 +27,19 @@ public class AuthController {
 		String identificador = body.get("identificador");
 		String clave = body.get("clave");
 
-		return authService.loginCliente(identificador, clave, request)
-				.<ResponseEntity<?>>map(cliente -> {
-					Map<String, String> response = new HashMap<>();
-					response.put("message", "Login exitoso");
-					return ResponseEntity.ok(response);
-				})
-				.orElseGet(() -> ResponseEntity.status(401).build());
+		try {
+			return authService.loginCliente(identificador, clave, request)
+					.<ResponseEntity<?>>map(cliente -> {
+						Map<String, String> response = new HashMap<>();
+						response.put("message", "Login exitoso");
+						return ResponseEntity.ok(response);
+					})
+					.orElseGet(() -> ResponseEntity.status(401).build());
+		} catch (RuntimeException e) {
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage());
+			return ResponseEntity.status(400).body(error);
+		}
 	}
 
 	@GetMapping("/me")
@@ -56,6 +63,40 @@ public class AuthController {
 		}
 
 		return ResponseEntity.ok(userData);
+	}
+
+	@PostMapping("/google-login")
+	public ResponseEntity<?> loginConGoogle(@RequestBody Map<String, String> body, HttpServletRequest request) {
+		// Nota: evitar @Transactional en el controlador porque hacemos llamadas externas (Google)
+		// y queremos que el manejo de transacciones quede en el servicio.
+		String code = body.get("code");
+		String redirectUri = "http://localhost:5173/auth/callback";
+
+		try {
+			Map<String, Object> googleUser = authService.loginConGoogle(code, redirectUri);
+
+			String email = (String) googleUser.get("email");
+
+			Optional<Cliente> clienteOpt = authService.findOrCreateClienteByEmail(email, googleUser, request);
+
+			if (clienteOpt.isPresent()) {
+				Cliente cliente = clienteOpt.get();
+				Map<String, Object> response = new HashMap<>();
+				response.put("message", "Login exitoso con Google");
+				response.put("cliente", cliente);
+				return ResponseEntity.ok(response);
+			} else {
+				return ResponseEntity.status(401).body("No se pudo autenticar al usuario");
+			}
+		} catch (IllegalArgumentException e) {
+			logger.warn("Bad request en loginConGoogle: {}", e.getMessage());
+			return ResponseEntity.status(400).body("Error: " + e.getMessage());
+		} catch (Exception e) {
+			// Loggear stacktrace completo para depuración (evita ocultar la causa real)
+			logger.error("Error en el proceso de autenticación con Google", e);
+			return ResponseEntity.status(500)
+					.body("Error en el proceso de autenticación: " + e.getMessage());
+		}
 	}
 
 	@PostMapping("/logout")

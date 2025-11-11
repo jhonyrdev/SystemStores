@@ -27,6 +27,7 @@ const ChangeCard = () => {
     },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = (data: Record<string, any>) => {
     if (data.nuevaContrasena !== data.repetirContrasena) {
       alert("Las contraseñas no coinciden.");
@@ -46,7 +47,7 @@ const ChangeCard = () => {
   const renderViewMode = () => (
     <div className="max-w-6xl mx-auto p-4 space-y-4">
       <button
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        className="px-4 py-2 bg-secundario-claro1 text-black rounded hover:font-semibold"
         onClick={() => setEditMode(true)}
       >
         Editar contraseña
@@ -64,7 +65,7 @@ const ChangeCard = () => {
         submitLabel="Guardar"
       />
       <p
-        className="text-center text-sm text-gray-500 cursor-pointer hover:underline"
+        className="text-center text-sm text-[#5e0956] hover:font-semibold cursor-pointer"
         onClick={handleCancel}
       >
         Volver...

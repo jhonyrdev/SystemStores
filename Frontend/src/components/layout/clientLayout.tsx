@@ -31,10 +31,10 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row h-wull  bg-gray-50">
       {/* Sidebar */}
       {showSidebar && (
-        <div className="w-full md:w-1/4 border-r bg-white p-4 shadow-sm">
+        <div className="w-full bg-[#fffdf5f4] md:w-1/4 border-r pb-50 p-4 shadow-sm">
           <ClientSidebar onSelect={() => isMobile && setShowSidebar(false)} />
         </div>
       )}
@@ -46,7 +46,7 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
           <div className="mb-4">
             <button
               onClick={handleBackClick}
-              className="text-blue-600 text-sm hover:underline font-medium"
+              className="text-secundario-oscuro text-sm font-medium hover:font-bold"
             >
               ← {isMobile ? "Volver al menú" : "Volver a perfil"}
             </button>
