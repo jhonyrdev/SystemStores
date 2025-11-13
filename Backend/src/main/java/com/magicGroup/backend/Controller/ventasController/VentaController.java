@@ -9,15 +9,18 @@ import org.springframework.http.*;
 import java.time.*;
 import java.util.*;
 import java.math.BigDecimal;
+import com.magicGroup.backend.model.ventas.Venta;
+import com.magicGroup.backend.repository.ventasRepository.VentaRepository;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/ventas")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class VentaController {
-    
+
     private final VentaServiceImpl ventaService;
     private final ObjectMapper objectMapper;
+    private final VentaRepository ventaRepository;
     
     @PostMapping("/registrar")
     public ResponseEntity<Map<String, Object>> registrarVenta(@RequestBody Map<String, Object> body) {
@@ -111,5 +114,49 @@ public class VentaController {
             errorResponse.put("mensaje", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+
+    // Analytics básicas para panel admin
+    @GetMapping("/analytics")
+    public ResponseEntity<Map<String, Object>> obtenerAnalyticsVentas() {
+        List<Venta> ventas = ventaRepository.findAll();
+        if (ventas.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("totalVentas", 0);
+            empty.put("totalMonto", 0);
+            empty.put("ticketPromedio", 0);
+            empty.put("ventasPorMes", Collections.emptyList());
+            return ResponseEntity.ok(empty);
+        }
+
+        int totalVentas = ventas.size();
+        BigDecimal totalMonto = ventas.stream()
+                .map(Venta::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal ticketPromedio = totalMonto.divide(BigDecimal.valueOf(totalVentas), java.math.RoundingMode.HALF_UP);
+
+        // Agrupar por mes (yyyy-MM)
+        Map<String, BigDecimal> porMes = new LinkedHashMap<>();
+        ventas.stream()
+                .sorted(Comparator.comparing(Venta::getFecha))
+                .forEach(v -> {
+                    String key = v.getFecha().getYear() + "-" + String.format("%02d", v.getFecha().getMonthValue());
+                    porMes.merge(key, v.getTotal(), BigDecimal::add);
+                });
+
+        List<Map<String, Object>> ventasPorMes = new ArrayList<>();
+        porMes.forEach((k, monto) -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("month", k);
+            item.put("ventas", monto);
+            ventasPorMes.add(item);
+        });
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalVentas", totalVentas);
+        response.put("totalMonto", totalMonto);
+        response.put("ticketPromedio", ticketPromedio);
+        response.put("ventasPorMes", ventasPorMes);
+        return ResponseEntity.ok(response);
     }
 }

@@ -68,3 +68,31 @@ export async function registrarUsuario(
     throw new Error("Error en el registro");
   }
 }
+
+interface CambiarClaveResponse { message: string }
+
+export async function cambiarClaveUsuario(
+  claveActual: string,
+  nuevaClave: string,
+  repetirClave: string
+): Promise<CambiarClaveResponse> {
+  try {
+    const res = await api.post<CambiarClaveResponse>(
+      "/api/usuarios/cambiar-clave",
+      { claveActual, nuevaClave, repetirClave },
+      { withCredentials: true }
+    );
+    return res.data;
+  } catch (error: unknown) {
+    // AxiosError shape (parcial) para evitar any
+    type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
+    const e = error as AxiosLikeError;
+    if (e.response?.data?.error) {
+      throw new Error(e.response.data.error);
+    }
+    if (e instanceof Error) {
+      throw new Error(e.message || 'Error al cambiar la contraseña');
+    }
+    throw new Error('Error al cambiar la contraseña');
+  }
+}

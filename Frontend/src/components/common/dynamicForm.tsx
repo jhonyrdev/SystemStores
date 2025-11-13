@@ -30,6 +30,8 @@ export interface FieldConfig {
   options?: { label: string; value: string }[];
   required?: boolean;
   disabled?: boolean;
+  // Optional validation error message to display under the field
+  error?: string;
 }
 
 interface DynamicFormProps {
@@ -140,6 +142,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                         disabled={f.disabled}
                         className="w-full"
                       />
+                      {f.error && (
+                        <p className="text-xs text-red-600 mt-1">{f.error}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -218,6 +223,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                         min={0}
                         className="w-full"
                       />
+                      {f.error && (
+                        <p className="text-xs text-red-600 mt-1">{f.error}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -301,6 +309,10 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                     disabled={field.disabled}
                     className="w-full"
                   />
+                )}
+
+                {field.error && (
+                  <p className="text-xs text-red-600 mt-1">{field.error}</p>
                 )}
 
                 {field.name === "password" && showPasswordStrength && (
