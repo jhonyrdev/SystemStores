@@ -6,7 +6,7 @@ import TablePaginas from "@components/common/tablePaginas";
 import { Badge } from "@components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
-import { obtenerTodosPedidos, actualizarEstadoPedido } from "@/services/ventas/pedidoService";
+import { obtenerTodosPedidos, actualizarEstadoPedido, obtenerDetallesPedido, type DetallePedidoItem } from "@/services/ventas/pedidoService";
 import {
   Select,
   SelectContent,
@@ -31,6 +31,10 @@ const GestionPedidos = () => {
   const [filtered, setFiltered] = useState<Pedido[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+  const [detalles, setDetalles] = useState<DetallePedidoItem[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null);
   const perPage = 10;
   const totalPages = Math.ceil(filtered.length / perPage);
 
@@ -43,9 +47,23 @@ const GestionPedidos = () => {
   const cargarPedidos = async () => {
     try {
       setLoading(true);
-      const pedidos = await obtenerTodosPedidos();
-      setAllData(pedidos);
-      setFiltered(pedidos);
+      const pedidosRaw = await obtenerTodosPedidos();
+      type PedidoBackend = {
+        idPed?: number; id_ped?: number; fecha?: string; estado?: string; total?: number;
+        cliente?: { nomCli?: string; apeCli?: string; nombre?: string; apellido?: string };
+      };
+      const pedidosMapped: Pedido[] = (pedidosRaw as PedidoBackend[]).map((p) => ({
+        idPed: p.idPed ?? p.id_ped ?? 0,
+        cliente: p.cliente ? {
+          nomCli: p.cliente.nomCli || p.cliente.nombre || 'Cliente',
+          apeCli: p.cliente.apeCli || p.cliente.apellido || ''
+        } : { nomCli: 'Cliente', apeCli: '' },
+        fecha: p.fecha || new Date().toISOString(),
+        estado: (p.estado as Pedido['estado']) || 'Nuevo',
+        total: p.total ?? 0,
+      }));
+      setAllData(pedidosMapped);
+      setFiltered(pedidosMapped);
     } catch (error) {
       console.error("Error al cargar pedidos:", error);
       alert("Error al cargar los pedidos");
@@ -110,23 +128,49 @@ const GestionPedidos = () => {
       cell: ({ row }) => {
         const pedido = row.original;
         return (
-          <Select
-            value={pedido.estado}
-            onValueChange={(value) => handleCambiarEstado(pedido.idPed, value)}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Cambiar estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Nuevo">Nuevo</SelectItem>
-              <SelectItem value="Realizado">Realizado</SelectItem>
-              <SelectItem value="Rechazado">Rechazado</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 items-center">
+            <Select
+              value={pedido.estado}
+              onValueChange={(value) => handleCambiarEstado(pedido.idPed, value)}
+            >
+              <SelectTrigger className="w-[130px] text-xs">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Nuevo">Nuevo</SelectItem>
+                <SelectItem value="Realizado">Realizado</SelectItem>
+                <SelectItem value="Rechazado">Rechazado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="secondary" size="sm" className="text-xs" onClick={() => abrirDetalles(pedido)}>
+              Ver
+            </Button>
+          </div>
         );
       },
     },
   ];
+  const abrirDetalles = async (pedido: Pedido) => {
+    try {
+      setPedidoSeleccionado(pedido);
+      setDetalleLoading(true);
+      setShowModal(true);
+      const data = await obtenerDetallesPedido(pedido.idPed);
+      setDetalles(data);
+    } catch (e) {
+      console.error("Error al cargar detalles", e);
+      alert("No se pudieron cargar los detalles del pedido");
+      setShowModal(false);
+    } finally {
+      setDetalleLoading(false);
+    }
+  };
+
+  const cerrarModal = () => {
+    setShowModal(false);
+    setDetalles([]);
+    setPedidoSeleccionado(null);
+  };
 
   const handleSearch = (value: string) => {
     const res = allData.filter((p) =>
@@ -180,6 +224,52 @@ const GestionPedidos = () => {
           perPage={perPage}
         />
       </div>
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md shadow-lg w-full max-w-2xl p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Detalles del Pedido {pedidoSeleccionado && `#${pedidoSeleccionado.idPed}`}</h2>
+              <Button variant="ghost" onClick={cerrarModal}>Cerrar</Button>
+            </div>
+            {detalleLoading ? (
+              <p className="text-sm text-gray-500">Cargando detalles...</p>
+            ) : detalles.length === 0 ? (
+              <p className="text-sm text-gray-500">No hay productos en este pedido.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="text-left py-2">Producto</th>
+                      <th className="text-right py-2">Cantidad</th>
+                      <th className="text-right py-2">Precio Unitario</th>
+                      <th className="text-right py-2">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalles.map(d => (
+                      <tr key={d.idDetalle} className="border-b last:border-0">
+                        <td className="py-2">{d.producto?.nomProd || 'Producto'}</td>
+                        <td className="py-2 text-right">{d.cantidad}</td>
+                        <td className="py-2 text-right">S/ {Number(d.precioUnit).toFixed(2)}</td>
+                        <td className="py-2 text-right font-medium">S/ {Number(d.subtotal).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    {pedidoSeleccionado && (
+                      <tr>
+                        <td colSpan={3} className="py-2 text-right font-semibold">Total Pedido:</td>
+                        <td className="py-2 text-right font-bold">S/ {Number(pedidoSeleccionado.total).toFixed(2)}</td>
+                      </tr>
+                    )}
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

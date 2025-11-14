@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { DynamicTable } from "@components/common/dataTable";
 import TableFiltro from "@components/common/tableFiltro";
 import TablePaginas from "@components/common/tablePaginas";
-import { listarClientes } from "@/services/cliente/clienteService";
+import { listarClientes, listarGastosClientes } from "@/services/cliente/clienteService";
 import type { Cliente } from "@/types/cliente";
 import { columnsclientes } from "@/constants/tabla/columnsCliente";
 
@@ -13,14 +13,19 @@ const GestionClientes = () => {
   const perPage = 10;
 
   useEffect(() => {
-  const fetchData = async () => {
-    const data = await listarClientes();
-    setClientes(data);
-    setFiltered(data);
-  };
-
-  fetchData();
-}, []);
+    const fetchData = async () => {
+      const data = await listarClientes();
+      // Traer mapa de gastos
+      const gastosMap = await listarGastosClientes();
+      const enriquecidos = data.map(c => ({
+        ...c,
+        gastoTotal: `S/. ${(gastosMap[c.idCliente] ?? 0).toLocaleString(undefined,{minimumFractionDigits:2})}`
+      }));
+      setClientes(enriquecidos);
+      setFiltered(enriquecidos);
+    };
+    fetchData();
+  }, []);
 
 
   const totalPages = Math.ceil(filtered.length / perPage);

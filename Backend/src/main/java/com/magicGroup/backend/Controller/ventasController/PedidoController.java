@@ -1,7 +1,9 @@
 package com.magicGroup.backend.Controller.ventasController;
 
 import com.magicGroup.backend.model.ventas.Pedido;
+import com.magicGroup.backend.model.ventas.DetallePedido;
 import com.magicGroup.backend.services.ventasServices.ventasServicesImpl.PedidoServiceImpl;
+import com.magicGroup.backend.services.ventasServices.DetallePedidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 public class PedidoController {
     
     private final PedidoServiceImpl pedidoService;
+    private final DetallePedidoService detallePedidoService;
     private final ObjectMapper objectMapper;
     
     @GetMapping("/cliente/{clienteId}")
@@ -27,6 +30,18 @@ public class PedidoController {
             return ResponseEntity.ok(pedidos);
         } catch (Exception e) {
             System.err.println("Error al obtener pedidos del cliente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/{idPedido}/detalles")
+    public ResponseEntity<List<DetallePedido>> obtenerDetallesPedido(@PathVariable Integer idPedido) {
+        try {
+            List<DetallePedido> detalles = detallePedidoService.obtenerDetallesPorPedido(idPedido);
+            return ResponseEntity.ok(detalles);
+        } catch (Exception e) {
+            System.err.println("Error al obtener detalles del pedido: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
