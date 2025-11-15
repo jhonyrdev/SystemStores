@@ -67,8 +67,6 @@ public class AuthController {
 
 	@PostMapping("/google-login")
 	public ResponseEntity<?> loginConGoogle(@RequestBody Map<String, String> body, HttpServletRequest request) {
-		// Nota: evitar @Transactional en el controlador porque hacemos llamadas externas (Google)
-		// y queremos que el manejo de transacciones quede en el servicio.
 		String code = body.get("code");
 		String redirectUri = "http://localhost:5173/auth/callback";
 
