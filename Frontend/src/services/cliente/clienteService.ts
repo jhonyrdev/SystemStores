@@ -19,11 +19,32 @@ export async function listarClientes(): Promise<Cliente[]> {
     return res.data.map((cliente) => ({
       ...cliente,
       estado: cliente.estado === "activo" ? "Activo" : "Inactivo",
-      gastoTotal: "S/. 0.00", 
+      gastoTotal: "S/. 0.00", // se actualiza luego si se solicita gastos
     }));
   } catch (error: unknown) {
     console.error("Error al cargar clientes:", error);
     throw new Error("Error al cargar clientes");
+  }
+}
+
+interface ClienteGastoAPI {
+  idCliente: number;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  estado: string;
+  gastoTotal: number; // viene como número (BigDecimal serializado)
+}
+
+export async function listarGastosClientes(): Promise<Record<number, number>> {
+  try {
+    const res = await api.get<ClienteGastoAPI[]>("/api/clientes/gastos");
+    const map: Record<number, number> = {};
+    res.data.forEach(c => { map[c.idCliente] = Number(c.gastoTotal); });
+    return map;
+  } catch (error: unknown) {
+    console.error("Error al cargar gastos de clientes:", error);
+    return {}; // fallback
   }
 }
 

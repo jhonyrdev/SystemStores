@@ -2,6 +2,8 @@ package com.magicGroup.backend.Controller.usuariosController;
 
 import com.magicGroup.backend.model.usuarios.Cliente;
 import com.magicGroup.backend.services.extrasServices.AuthService;
+import com.magicGroup.backend.repository.usuariosRepository.CredencialRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.slf4j.*;
@@ -15,10 +17,12 @@ import java.util.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+// Removed narrow @CrossOrigin (only 5173) to rely on global CorsConfig (5173 & 5174)
 public class AuthController {
 
 	private final AuthService authService;
+	private final CredencialRepository credencialRepository;
+	private final PasswordEncoder passwordEncoder;
 	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 	// Login Cliente
@@ -113,5 +117,52 @@ public class AuthController {
 		return authService.loginAdmin(correo, clave)
 				.<ResponseEntity<?>>map(ResponseEntity::ok)
 				.orElseGet(() -> ResponseEntity.status(401).build());
+	}
+
+	@PostMapping("/cambiar-clave")
+	public ResponseEntity<?> cambiarClave(@RequestBody Map<String, String> body, Authentication authentication) {
+		if (authentication == null || !(authentication.getPrincipal() instanceof Cliente cliente)) {
+			return ResponseEntity.status(401).body(Map.of("error", "No autenticado"));
+		}
+
+		String claveActual = body.getOrDefault("claveActual", "");
+		String nuevaClave = body.getOrDefault("nuevaClave", "");
+		String repetirClave = body.getOrDefault("repetirClave", "");
+
+		try {
+			if (claveActual.isBlank() || nuevaClave.isBlank() || repetirClave.isBlank()) {
+				throw new IllegalArgumentException("Todos los campos son obligatorios");
+			}
+			if (!nuevaClave.equals(repetirClave)) {
+				throw new IllegalArgumentException("La nueva contraseña y su confirmación no coinciden");
+			}
+			if (nuevaClave.length() < 8) {
+				throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres");
+			}
+			if (nuevaClave.equals(claveActual)) {
+				throw new IllegalArgumentException("La nueva contraseña debe ser diferente a la actual");
+			}
+			// Reglas básicas: al menos una letra y un número
+			if (!nuevaClave.matches(".*[A-Za-z].*") || !nuevaClave.matches(".*[0-9].*")) {
+				throw new IllegalArgumentException("La contraseña debe contener letras y números");
+			}
+
+			var cred = cliente.getCredencial();
+			if (cred == null) {
+				return ResponseEntity.status(400).body(Map.of("error", "No se encontró credencial asociada"));
+			}
+			if (!passwordEncoder.matches(claveActual, cred.getClave())) {
+				return ResponseEntity.status(400).body(Map.of("error", "La contraseña actual es incorrecta"));
+			}
+
+			cred.setClave(passwordEncoder.encode(nuevaClave));
+			credencialRepository.save(cred);
+
+			return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+		} catch (Exception e) {
+			return ResponseEntity.status(500).body(Map.of("error", "Error al cambiar la contraseña"));
+		}
 	}
 }

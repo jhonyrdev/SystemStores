@@ -6,6 +6,9 @@ import type {
 } from "@/types/ventas";
 import api from "@/utils/axiomInstance";
 
+// Base endpoint segment (axios baseURL no incluye "/api")
+const PEDIDOS_BASE = '/api/pedidos';
+
 export async function registrarPedido(
   pedido: PedidoRequest
 ): Promise<PedidoResponse> {
@@ -87,3 +90,5 @@ export async function actualizarEstadoPedido(
     throw error;
   }
 }
+
+// El helper fetch + handleResponse quedó obsoleto al migrar todo a axios; se puede eliminar si estaba más abajo.
