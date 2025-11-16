@@ -30,8 +30,6 @@ const PedidosCard = () => {
     const cargarPedidos = async () => {
       try {
         setLoading(true);
-
-        // Obtener datos del usuario del localStorage
         const storedUser = localStorage.getItem("usuario");
         if (!storedUser) {
           setError("Usuario no autenticado");
@@ -47,18 +45,10 @@ const PedidosCard = () => {
           setLoading(false);
           return;
         }
-
-        console.log("Cargando pedidos para cliente:", clienteId);
         const pedidos = await obtenerPedidosPorCliente(clienteId);
-        console.log("Pedidos obtenidos:", pedidos);
-
-        // Normalizar la estructura que viene del backend y asegurar tipos
         const normalizePedido = (p: unknown): Pedido => {
           const obj = p as Record<string, unknown>;
-          // Algunos campos pueden venir con nombres distintos del backend
-          const idPed = (obj['idPed'] ?? obj['id_ped'] ?? obj['id_pedido'] ?? obj['id']) as number | undefined;
-          // total puede venir como número o string
-          const totalRaw = obj['total'];
+          const idPed = (obj['idPed'] ?? obj['id_ped'] ?? obj['id_pedido'] ?? obj['id']) as number | undefined;          const totalRaw = obj['total'];
           const totalNum = typeof totalRaw === 'string' ? Number(totalRaw) : (totalRaw as number | undefined);
           const fechaStr = (obj['fecha'] ?? obj['fechaPedido']) as string | undefined;
           const estadoStr = (obj['estado'] as 'Nuevo' | 'Realizado' | 'Rechazado') ?? 'Nuevo';
@@ -73,7 +63,6 @@ const PedidosCard = () => {
 
         const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
 
-        // Separar pedidos activos de historial
         const activos = pedidosNormalizados.filter(
           (p) => p.estado === "Nuevo" || p.estado === "Realizado"
         );
@@ -105,10 +94,7 @@ const PedidosCard = () => {
     try {
       await cancelarPedido(id);
 
-      // Actualizar el estado local removiendo el pedido cancelado de activos
       setPedidosActivos((prev) => prev.filter((p) => p.idPed !== id));
-
-      // Recargar pedidos para reflejar el cambio
       const storedUser = localStorage.getItem("usuario");
       if (storedUser) {
         const usuario: Usuario = JSON.parse(storedUser);
