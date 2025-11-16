@@ -6,6 +6,16 @@ import type {
 } from "@/types/ventas";
 import api from "@/utils/axiomInstance";
 
+// Tipo usado por la UI para los detalles del pedido (coincide con lo que devuelve el backend)
+export type DetallePedidoItem = {
+  idDetalle?: number;
+  producto?: {
+    nomProd?: string;
+  } | null;
+  cantidad: number;
+  precioUnit: number;
+  subtotal: number;
+};
 export async function registrarPedido(
   pedido: PedidoRequest
 ): Promise<PedidoResponse> {
@@ -84,6 +94,18 @@ export async function actualizarEstadoPedido(
     return res.data;
   } catch (error: unknown) {
     console.error("Error al actualizar estado del pedido:", error);
+    throw error;
+  }
+}
+
+export async function obtenerDetallesPedido(idPedido: number): Promise<DetallePedidoItem[]> {
+  try {
+    const res = await api.get<DetallePedidoItem[]>(`/api/pedidos/${idPedido}/detalles`, {
+      withCredentials: true,
+    });
+    return res.data;
+  } catch (error: unknown) {
+    console.error("Error al obtener detalles del pedido:", error);
     throw error;
   }
 }
