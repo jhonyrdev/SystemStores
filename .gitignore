@@ -1,2 +1,3 @@
 Backend/src/main/resources/application.properties
 Frontend/.env
+uploads/productos

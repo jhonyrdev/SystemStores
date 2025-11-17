@@ -6,7 +6,8 @@ import TablePaginas from "@components/common/tablePaginas";
 import { Badge } from "@components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
-import { obtenerTodosPedidos, actualizarEstadoPedido, obtenerDetallesPedido, type DetallePedidoItem } from "@/services/ventas/pedidoService";
+import { obtenerTodosPedidos, actualizarEstadoPedido, obtenerDetallesPedido} from "@/services/ventas/pedidoService";
+import type {DetallePedidoItem } from "@/services/ventas/pedidoService";
 import {
   Select,
   SelectContent,
