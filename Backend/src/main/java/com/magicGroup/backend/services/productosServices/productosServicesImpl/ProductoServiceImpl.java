@@ -5,11 +5,12 @@ import com.magicGroup.backend.repository.productosRepository.ProductoRepository;
 import com.magicGroup.backend.services.GenericServiceImpl;
 import com.magicGroup.backend.services.productosServices.ProductoService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.text.DecimalFormat;
 import java.util.List;
 
 @Service
-public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer> 
+public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
         implements ProductoService {
 
     private final ProductoRepository repo;
@@ -48,7 +49,7 @@ public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
                 .orElse(null);
     }
 
-    //Calcula y asigna el estado del producto según su categoría y stock
+    // Calcula y asigna el estado del producto según su categoría y stock
     private void calcularYAsignarEstado(Producto producto) {
         String categoria = producto.getSubcategoria().getCategoria().getNomCat();
         int stock = producto.getCantProd();
@@ -63,7 +64,7 @@ public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
             producto.setEstado(Producto.Estado.Disponible);
         }
     }
-    
+
     @Override
     public Producto guardar(Producto p) {
         if (p.getIdProd() == null) {
@@ -77,5 +78,16 @@ public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
     @Override
     public List<Producto> listarTodosConRelaciones() {
         return repo.findAllWithRelations();
+    }
+
+    @Override
+    @Transactional
+    public void increaseStock(Integer idProd, int cantidad) {
+        // usar update atomico en repository
+        int updated = repo.adjustStock(idProd, cantidad);
+        if (updated == 0) {
+            // fallback: si no actualizo (producto no existe) lanzar error
+            throw new RuntimeException("Producto no encontrado para aumentar stock: " + idProd);
+        }
     }
 }

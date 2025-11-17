@@ -98,14 +98,33 @@ export async function actualizarEstadoPedido(
   }
 }
 
-export async function obtenerDetallesPedido(idPedido: number): Promise<DetallePedidoItem[]> {
+export async function obtenerDetallesPedido(
+  idPedido: number
+): Promise<DetallePedidoItem[]> {
   try {
-    const res = await api.get<DetallePedidoItem[]>(`/api/pedidos/${idPedido}/detalles`, {
+    const res = await api.get<DetallePedidoItem[]>(
+      `/api/pedidos/${idPedido}/detalles`,
+      {
+        withCredentials: true,
+      }
+    );
+    return res.data;
+  } catch (error: unknown) {
+    console.error("Error al obtener detalles del pedido:", error);
+    throw error;
+  }
+}
+
+export async function eliminarPedido(
+  idPedido: number
+): Promise<ActionResponse> {
+  try {
+    const res = await api.delete<ActionResponse>(`/api/pedidos/${idPedido}`, {
       withCredentials: true,
     });
     return res.data;
   } catch (error: unknown) {
-    console.error("Error al obtener detalles del pedido:", error);
+    console.error("Error al eliminar pedido:", error);
     throw error;
   }
 }
