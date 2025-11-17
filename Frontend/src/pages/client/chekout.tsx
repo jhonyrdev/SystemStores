@@ -7,7 +7,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import PagoModal from "@/components/client/pagoModal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { listarDireccionesCliente } from "@/services/cliente/direccionService";
 import { registrarPedido } from "@/services/ventas/pedidoService";
 import type { Direccion } from "@/types/direccion";
@@ -32,11 +38,17 @@ const Checkout = () => {
   const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
   const [metodoPago, setMetodoPago] = useState<number>(1);
   const [openPagoModal, setOpenPagoModal] = useState(false);
-  const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">("boleta");
+  const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
+    "boleta"
+  );
   const [detallesConfirmados, setDetallesConfirmados] = useState(false);
-  const [pedidoRegistrado, setPedidoRegistrado] = useState<PedidoResponse | null>(null);
+  const [pedidoRegistrado, setPedidoRegistrado] =
+    useState<PedidoResponse | null>(null);
 
-  const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const total = items.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
 
   const cargarDirecciones = useCallback(async () => {
     if (!usuario || !usuario.idCliente) {
@@ -63,7 +75,8 @@ const Checkout = () => {
       }
     } catch (error) {
       toast.error("Error al cargar direcciones", {
-        description: error instanceof Error ? error.message : "Error desconocido",
+        description:
+          error instanceof Error ? error.message : "Error desconocido",
       });
       setDirecciones([]);
     } finally {
@@ -104,7 +117,8 @@ const Checkout = () => {
       const pedidoData: PedidoRequest = {
         id_cli: usuario.idCliente,
         tipo_entrega: metodoEnvio,
-        id_dir: metodoEnvio === "envio" ? parseInt(direccionSeleccionada) : undefined,
+        id_dir:
+          metodoEnvio === "envio" ? parseInt(direccionSeleccionada) : undefined,
         total: total,
         detalles: items.map((item) => ({
           id_prod: item.id,
@@ -123,7 +137,8 @@ const Checkout = () => {
       });
     } catch (error) {
       toast.error("Error al registrar el pedido", {
-        description: error instanceof Error ? error.message : "Intenta nuevamente",
+        description:
+          error instanceof Error ? error.message : "Intenta nuevamente",
       });
     }
   };
@@ -154,6 +169,9 @@ const Checkout = () => {
         description: `Venta #${ventaId} - ${tipoComprobante.toUpperCase()}`,
       });
       clearCarrito();
+      // resetear estado del pedido y confirmación de detalles
+      setPedidoRegistrado(null);
+      setDetallesConfirmados(false);
     } else {
       toast.error("El pago ha fallado. Intenta nuevamente.");
     }
@@ -204,7 +222,9 @@ const Checkout = () => {
                     <Label className="font-semibold">Método de envío</Label>
                     <RadioGroup
                       value={metodoEnvio}
-                      onValueChange={(val) => setMetodoEnvio(val as "envio" | "recojo")}
+                      onValueChange={(val) =>
+                        setMetodoEnvio(val as "envio" | "recojo")
+                      }
                       className="space-y-3 mt-2"
                     >
                       <div className="flex items-center space-x-2">
@@ -224,7 +244,9 @@ const Checkout = () => {
                         <Select
                           value={direccionSeleccionada}
                           onValueChange={setDireccionSeleccionada}
-                          disabled={cargandoDirecciones || direcciones.length === 0}
+                          disabled={
+                            cargandoDirecciones || direcciones.length === 0
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue
@@ -240,7 +262,10 @@ const Checkout = () => {
                           <SelectContent>
                             {direcciones.length > 0 ? (
                               direcciones.map((dir) => (
-                                <SelectItem key={dir.id} value={dir.id.toString()}>
+                                <SelectItem
+                                  key={dir.id}
+                                  value={dir.id.toString()}
+                                >
                                   {dir.texto}
                                 </SelectItem>
                               ))
@@ -257,7 +282,11 @@ const Checkout = () => {
                             <p className="text-xs text-muted-foreground">
                               Agrega una dirección desde tu perfil
                             </p>
-                            <Button variant="outline" size="sm" onClick={cargarDirecciones}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={cargarDirecciones}
+                            >
                               Recargar direcciones
                             </Button>
                           </div>
@@ -307,12 +336,14 @@ const Checkout = () => {
                   {metodoEnvio === "envio" && (
                     <p>
                       <strong>Dirección:</strong>{" "}
-                      {direcciones.find((d) => d.id.toString() === direccionSeleccionada)?.texto ||
-                        "No especificada"}
+                      {direcciones.find(
+                        (d) => d.id.toString() === direccionSeleccionada
+                      )?.texto || "No especificada"}
                     </p>
                   )}
                   <p>
-                    <strong>Método de pago:</strong> {getMetodoPagoTexto(metodoPago)}
+                    <strong>Método de pago:</strong>{" "}
+                    {getMetodoPagoTexto(metodoPago)}
                   </p>
                 </div>
               )}
@@ -334,11 +365,16 @@ const Checkout = () => {
                 <div className="space-y-4">
                   <ul className="space-y-2">
                     {items.map((item) => (
-                      <li key={item.id} className="flex justify-between border-b pb-2 text-sm">
+                      <li
+                        key={item.id}
+                        className="flex justify-between border-b pb-2 text-sm"
+                      >
                         <span>
                           {item.name} × {item.quantity}
                         </span>
-                        <span>S/ {(item.price * item.quantity).toFixed(2)}</span>
+                        <span>
+                          S/ {(item.price * item.quantity).toFixed(2)}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -350,17 +386,42 @@ const Checkout = () => {
                     <span>S/ {total.toFixed(2)}</span>
                   </div>
 
-                  <Button
-                    className="w-full mt-4 bg-secundario text-black font-bold"
-                    onClick={handleConfirmarPedido}
-                    disabled={!detallesConfirmados}
-                  >
-                    {detallesConfirmados
-                      ? metodoPago === 1
-                        ? "Confirmar pedido"
-                        : "Proceder al pago"
-                      : "Confirma los detalles primero"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 mt-4 bg-secundario text-black font-bold"
+                      onClick={handleConfirmarPedido}
+                      disabled={!detallesConfirmados}
+                    >
+                      {detallesConfirmados
+                        ? metodoPago === 1
+                          ? "Confirmar pedido"
+                          : "Proceder al pago"
+                        : "Confirma los detalles primero"}
+                    </Button>
+                    {pedidoRegistrado && (
+                      <Button
+                        className="mt-4 bg-red-600 text-white font-bold"
+                        onClick={async () => {
+                          try {
+                            const { eliminarPedido } = await import(
+                              "@/services/ventas/pedidoService"
+                            );
+                            await eliminarPedido(pedidoRegistrado.id_ped);
+                            toast.success("Pedido eliminado");
+                            clearCarrito();
+                            setPedidoRegistrado(null);
+                            setDetallesConfirmados(false);
+                            setOpenPagoModal(false);
+                          } catch (err) {
+                            console.error("Error eliminando pedido:", err);
+                            toast.error("No se pudo eliminar el pedido");
+                          }
+                        }}
+                      >
+                        Cancelar compra
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>

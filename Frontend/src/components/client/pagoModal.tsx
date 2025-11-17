@@ -1,11 +1,21 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registrarVenta } from "@/services/ventas/ventaService";
-import type { VentaRequest, PedidoResponse, DetalleVenta } from "@/types/ventas";
+import { cancelarPedido } from "@/services/ventas/pedidoService";
+import type {
+  VentaRequest,
+  PedidoResponse,
+  DetalleVenta,
+} from "@/types/ventas";
 import type { CarritoItem } from "@/context/carritoContext";
 import { toast } from "sonner";
 
@@ -13,7 +23,9 @@ interface PagoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tipoComprobante: "boleta" | "factura";
-  setTipoComprobante: React.Dispatch<React.SetStateAction<"boleta" | "factura">>;
+  setTipoComprobante: React.Dispatch<
+    React.SetStateAction<"boleta" | "factura">
+  >;
   pedidoRegistrado: PedidoResponse;
   idMetodo: number;
   totalVenta: number;
@@ -30,14 +42,14 @@ const PagoModal = ({
   idMetodo,
   totalVenta,
   detallesVenta,
-  onResultado
+  onResultado,
 }: PagoModalProps) => {
   const usuario = useMemo(() => {
     try {
       const usuarioStr = localStorage.getItem("usuario");
       if (!usuarioStr) return null;
       return JSON.parse(usuarioStr);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return null;
     }
@@ -76,7 +88,7 @@ const PagoModal = ({
     setProcesando(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const exito = Math.random() < 0.7;
 
@@ -84,12 +96,12 @@ const PagoModal = ({
         const codigo = generarCodigoComprobante();
         setCodigoComprobante(codigo);
 
-        const detalles: DetalleVenta[] = detallesVenta.map(item => ({
+        const detalles: DetalleVenta[] = detallesVenta.map((item) => ({
           id_prod: item.id,
           nom_prod: item.name,
           cantidad: item.quantity,
           precio_unit: item.price,
-          subtotal: item.price * item.quantity
+          subtotal: item.price * item.quantity,
         }));
 
         const ventaData: VentaRequest = {
@@ -100,51 +112,55 @@ const PagoModal = ({
           tipo: tipoComprobante,
           codigo: codigo,
           ruc_cliente: tipoComprobante === "factura" ? ruc : undefined,
-          razon_social_cliente: tipoComprobante === "factura" ? razonSocial : undefined,
-          detalles: detalles
+          razon_social_cliente:
+            tipoComprobante === "factura" ? razonSocial : undefined,
+          detalles: detalles,
         };
 
         const response = await registrarVenta(ventaData);
-        
+
         setPagoRealizado(true);
         setVentaId(response.id_venta);
         setMensaje("Pago realizado exitosamente");
-        
+        setProcesando(false);
+
         toast.success("Venta registrada", {
-          description: `Venta #${response.id_venta} - ${tipoComprobante.toUpperCase()} ${codigo}`
+          description: `Venta #${
+            response.id_venta
+          } - ${tipoComprobante.toUpperCase()} ${codigo}`,
         });
 
-        setTimeout(() => {
-          onResultado(true, response.id_venta);
-        }, 2000);
+        // Notify parent so it can clear carrito and reset UI
+        onResultado(true, response.id_venta);
       } else {
         setMensaje("Pago rechazado");
         toast.error("El pago no pudo ser procesado");
         setProcesando(false);
-        
-        setTimeout(() => {
-          handleCerrar();
-        }, 2000);
       }
     } catch (error) {
       console.error("Error al procesar pago:", error);
       toast.error("Error al registrar la venta", {
-        description: error instanceof Error ? error.message : "Intenta nuevamente"
+        description:
+          error instanceof Error ? error.message : "Intenta nuevamente",
       });
       setMensaje("Error en el sistema");
       setProcesando(false);
-      
-      setTimeout(() => {
-        handleCerrar();
-      }, 2000);
     }
   };
 
-  const handleCerrar = () => {
+  const handleCerrar = async () => {
     if (!pagoRealizado) {
+      // cancelar el pedido registrado si existe
+      try {
+        if (pedidoRegistrado?.id_ped) {
+          await cancelarPedido(pedidoRegistrado.id_ped);
+        }
+      } catch (err) {
+        console.warn("Error cancelando pedido al cerrar modal:", err);
+      }
       onResultado(false);
     }
-    
+
     setPagoRealizado(false);
     setProcesando(false);
     setMensaje("");
@@ -164,12 +180,14 @@ const PagoModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleCerrar}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Simulador de pago online</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {!pagoRealizado && !procesando && "Elige el tipo de comprobante y simula el pago"}
+            {!pagoRealizado &&
+              !procesando &&
+              "Elige el tipo de comprobante y simula el pago"}
             {procesando && "Procesando pago..."}
             {pagoRealizado && mensaje}
           </p>
@@ -181,9 +199,7 @@ const PagoModal = ({
               <p className="font-medium text-blue-900">
                 Pedido #{pedidoRegistrado.id_ped}
               </p>
-              <p className="text-blue-700">
-                Total: S/ {totalVenta.toFixed(2)}
-              </p>
+              <p className="text-blue-700">Total: S/ {totalVenta.toFixed(2)}</p>
               <p className="text-blue-600 text-xs mt-1">
                 {pedidoRegistrado.fecha} {pedidoRegistrado.hora}
               </p>
@@ -191,8 +207,8 @@ const PagoModal = ({
 
             <div>
               <Label className="font-semibold">Tipo de comprobante</Label>
-              <RadioGroup 
-                value={tipoComprobante} 
+              <RadioGroup
+                value={tipoComprobante}
                 onValueChange={handleTipoComprobanteChange}
                 className="mt-2"
               >
@@ -211,9 +227,11 @@ const PagoModal = ({
               <div className="space-y-3 border-t pt-3">
                 <div>
                   <Label>RUC *</Label>
-                  <Input 
-                    value={ruc} 
-                    onChange={(e) => setRuc(e.target.value.replace(/\D/g, '').slice(0, 11))} 
+                  <Input
+                    value={ruc}
+                    onChange={(e) =>
+                      setRuc(e.target.value.replace(/\D/g, "").slice(0, 11))
+                    }
                     placeholder="Ej: 20123456789"
                     maxLength={11}
                   />
@@ -223,36 +241,34 @@ const PagoModal = ({
                 </div>
                 <div>
                   <Label>Razón Social *</Label>
-                  <Input 
-                    value={razonSocial} 
-                    onChange={(e) => setRazonSocial(e.target.value)} 
+                  <Input
+                    value={razonSocial}
+                    onChange={(e) => setRazonSocial(e.target.value)}
                     placeholder="Ej: Mi Empresa SAC"
                   />
                 </div>
               </div>
             )}
 
-            <Button 
-              className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white" 
+            <Button
+              className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
               onClick={handleSimularPago}
             >
               Simular pago
             </Button>
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCerrar}
-            >
+            <Button variant="outline" className="w-full" onClick={handleCerrar}>
               Cancelar
             </Button>
           </div>
         )}
 
-        {procesando && (
+        {procesando && !pagoRealizado && (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-            <p className="text-sm text-muted-foreground">Procesando tu pago...</p>
+            <p className="text-sm text-muted-foreground">
+              Procesando tu pago...
+            </p>
           </div>
         )}
 
@@ -261,9 +277,7 @@ const PagoModal = ({
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
               <div className="text-4xl mb-2">✅</div>
               <p className="font-semibold text-green-900">Pago exitoso</p>
-              <p className="text-sm text-green-700 mt-2">
-                Venta #{ventaId}
-              </p>
+              <p className="text-sm text-green-700 mt-2">Venta #{ventaId}</p>
             </div>
 
             <div className="space-y-2 text-sm border-t pt-3">
@@ -273,7 +287,9 @@ const PagoModal = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Comprobante:</span>
-                <span className="font-medium">{tipoComprobante.toUpperCase()}</span>
+                <span className="font-medium">
+                  {tipoComprobante.toUpperCase()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Código:</span>
@@ -297,10 +313,7 @@ const PagoModal = ({
               </div>
             </div>
 
-            <Button 
-              className="w-full" 
-              onClick={handleCerrar}
-            >
+            <Button className="w-full" onClick={handleCerrar}>
               Cerrar
             </Button>
           </div>

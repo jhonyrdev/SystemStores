@@ -10,9 +10,13 @@ public interface VentaRepository extends JpaRepository<Venta, Integer> {
 
 	interface ClienteGastoProjection {
 		Integer getIdCli();
+
 		BigDecimal getTotalGastado();
 	}
 
-	@Query("SELECT v.cliente.idCli AS idCli, SUM(v.total) AS totalGastado FROM Venta v GROUP BY v.cliente.idCli")
+	// Exclude ventas linked to pedidos with estado 'Rechazado' so rejected orders
+	// are not counted
+	@Query("SELECT v.cliente.idCli AS idCli, SUM(v.total) AS totalGastado FROM Venta v " +
+			"WHERE v.pedido IS NULL OR v.pedido.estado <> 'Rechazado' GROUP BY v.cliente.idCli")
 	List<ClienteGastoProjection> obtenerGastosPorCliente();
 }

@@ -48,14 +48,25 @@ const PedidosCard = () => {
         const pedidos = await obtenerPedidosPorCliente(clienteId);
         const normalizePedido = (p: unknown): Pedido => {
           const obj = p as Record<string, unknown>;
-          const idPed = (obj['idPed'] ?? obj['id_ped'] ?? obj['id_pedido'] ?? obj['id']) as number | undefined;          const totalRaw = obj['total'];
-          const totalNum = typeof totalRaw === 'string' ? Number(totalRaw) : (totalRaw as number | undefined);
-          const fechaStr = (obj['fecha'] ?? obj['fechaPedido']) as string | undefined;
-          const estadoStr = (obj['estado'] as 'Nuevo' | 'Realizado' | 'Rechazado') ?? 'Nuevo';
+          const idPed = (obj["idPed"] ??
+            obj["id_ped"] ??
+            obj["id_pedido"] ??
+            obj["id"]) as number | undefined;
+          const totalRaw = obj["total"];
+          const totalNum =
+            typeof totalRaw === "string"
+              ? Number(totalRaw)
+              : (totalRaw as number | undefined);
+          const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
+            | string
+            | undefined;
+          const estadoStr =
+            (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
 
           return {
             idPed: idPed ?? 0,
-            fecha: typeof fechaStr === 'string' ? fechaStr : String(fechaStr ?? ''),
+            fecha:
+              typeof fechaStr === "string" ? fechaStr : String(fechaStr ?? ""),
             total: Number.isFinite(totalNum ?? NaN) ? (totalNum as number) : 0,
             estado: estadoStr,
           };
@@ -63,11 +74,10 @@ const PedidosCard = () => {
 
         const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
 
-        const activos = pedidosNormalizados.filter(
-          (p) => p.estado === "Nuevo" || p.estado === "Realizado"
-        );
+        const activos = pedidosNormalizados.filter((p) => p.estado === "Nuevo");
+
         const historial = pedidosNormalizados.filter(
-          (p) => p.estado === "Rechazado" || p.estado === "Realizado"
+          (p) => p.estado === "Realizado" || p.estado === "Rechazado"
         );
 
         setPedidosActivos(activos);
@@ -103,27 +113,43 @@ const PedidosCard = () => {
           const pedidos = await obtenerPedidosPorCliente(clienteId);
           const normalizePedido = (p: unknown): Pedido => {
             const obj = p as Record<string, unknown>;
-            const idPed = (obj['idPed'] ?? obj['id_ped'] ?? obj['id_pedido'] ?? obj['id']) as number | undefined;
-            const totalRaw = obj['total'];
-            const totalNum = typeof totalRaw === 'string' ? Number(totalRaw) : (totalRaw as number | undefined);
-            const fechaStr = (obj['fecha'] ?? obj['fechaPedido']) as string | undefined;
-            const estadoStr = (obj['estado'] as 'Nuevo' | 'Realizado' | 'Rechazado') ?? 'Nuevo';
+            const idPed = (obj["idPed"] ??
+              obj["id_ped"] ??
+              obj["id_pedido"] ??
+              obj["id"]) as number | undefined;
+            const totalRaw = obj["total"];
+            const totalNum =
+              typeof totalRaw === "string"
+                ? Number(totalRaw)
+                : (totalRaw as number | undefined);
+            const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
+              | string
+              | undefined;
+            const estadoStr =
+              (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
 
             return {
               idPed: idPed ?? 0,
-              fecha: typeof fechaStr === 'string' ? fechaStr : String(fechaStr ?? ''),
-              total: Number.isFinite(totalNum ?? NaN) ? (totalNum as number) : 0,
+              fecha:
+                typeof fechaStr === "string"
+                  ? fechaStr
+                  : String(fechaStr ?? ""),
+              total: Number.isFinite(totalNum ?? NaN)
+                ? (totalNum as number)
+                : 0,
               estado: estadoStr,
             };
           };
 
           const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
           const activos = pedidosNormalizados.filter(
-            (p) => p.estado === "Nuevo" || p.estado === "Realizado"
+            (p) => p.estado === "Nuevo"
           );
+
           const historial = pedidosNormalizados.filter(
-            (p) => p.estado === "Rechazado" || p.estado === "Realizado"
+            (p) => p.estado === "Realizado" || p.estado === "Rechazado"
           );
+
           setPedidosActivos(activos);
           setHistorialPedidos(historial);
         }

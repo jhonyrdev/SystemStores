@@ -15,4 +15,7 @@ public interface ProductoService extends GenericService<Producto, Integer> {
 
     List<Producto> listarTodosConRelaciones();
 
+    // Ajustar stock de forma atómica
+    void increaseStock(Integer idProd, int cantidad);
+
 }
