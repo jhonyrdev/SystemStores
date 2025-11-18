@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"categoria", "productos"})
 public class SubCategoria {
 
     @Id

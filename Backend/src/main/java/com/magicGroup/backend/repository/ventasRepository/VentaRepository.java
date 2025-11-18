@@ -19,4 +19,7 @@ public interface VentaRepository extends JpaRepository<Venta, Integer> {
 	@Query("SELECT v.cliente.idCli AS idCli, SUM(v.total) AS totalGastado FROM Venta v " +
 			"WHERE v.pedido IS NULL OR v.pedido.estado <> 'Rechazado' GROUP BY v.cliente.idCli")
 	List<ClienteGastoProjection> obtenerGastosPorCliente();
+
+	// Find venta by its linked pedido id (optional)
+	java.util.Optional<Venta> findByPedido_IdPed(Integer idPed);
 }
