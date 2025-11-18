@@ -44,4 +44,7 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Inte
             +
             "FROM DetalleVenta dv GROUP BY dv.venta.cliente.idCli, dv.venta.cliente.nomCli, dv.venta.cliente.apeCli ORDER BY SUM(dv.cantidad) DESC")
     List<ClienteVentaProjection> findTopClientes(Pageable pageable);
+
+    // Find detalle ventas by venta id
+    List<DetalleVenta> findByVenta_IdVenta(Integer idVenta);
 }

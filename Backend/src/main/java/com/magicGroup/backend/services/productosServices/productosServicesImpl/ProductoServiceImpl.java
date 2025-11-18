@@ -49,7 +49,6 @@ public class ProductoServiceImpl extends GenericServiceImpl<Producto, Integer>
                 .orElse(null);
     }
 
-    // Calcula y asigna el estado del producto según su categoría y stock
     private void calcularYAsignarEstado(Producto producto) {
         String categoria = producto.getSubcategoria().getCategoria().getNomCat();
         int stock = producto.getCantProd();
