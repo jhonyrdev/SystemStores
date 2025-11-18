@@ -25,6 +25,19 @@ const Header: React.FC = () => {
 
   const [categorias, setCategorias] = useState([]);
 
+  // Cerrar modal cuando se navega a forgot-password
+  useEffect(() => {
+    const handleCloseModal = () => {
+      setModalOpen(false);
+    };
+    
+    window.addEventListener('closeForgotPasswordModal', handleCloseModal);
+    
+    return () => {
+      window.removeEventListener('closeForgotPasswordModal', handleCloseModal);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
@@ -116,6 +129,7 @@ const Header: React.FC = () => {
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
           showSocialButtons={true}
+          showForgotPassword={isLoginView}
         />
 
         {/* Cambiar entre login y registro */}

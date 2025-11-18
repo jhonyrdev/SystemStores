@@ -1,4 +1,5 @@
 import React, { useState, useEffect, type JSX } from "react";
+import { Link } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { MdOutlineMail as SiMicrosoftoutlook } from "react-icons/md";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface DynamicFormProps {
   onGoogleLogin?: () => void;
   onOutlookLogin?: () => void;
   showSocialButtons?: boolean;
+  showForgotPassword?: boolean;
 }
 
 const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -61,11 +63,18 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   onGoogleLogin,
   onOutlookLogin,
   showSocialButtons,
+  showForgotPassword = false,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Debug: verificar si showForgotPassword está activo
+  React.useEffect(() => {
+    console.log('DynamicForm - showForgotPassword:', showForgotPassword);
+    console.log('DynamicForm - fields:', fields.map(f => f.name));
+  }, [showForgotPassword, fields]);
 
   useEffect(() => {
     if (initialValues.imgProd) {
@@ -313,6 +322,31 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
 
                 {field.error && (
                   <p className="text-xs text-red-600 mt-1">{field.error}</p>
+                )}
+
+                {/* Enlace "Olvidaste tu contraseña" para campo password */}
+                {field.type === "password" && showForgotPassword && (
+                  <div className="text-right mt-2">
+                    <Link 
+                      to="/forgot-password" 
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Cerrar modal si está dentro de uno
+                        const modal = (e.target as HTMLElement).closest('[role="dialog"]');
+                        if (modal) {
+                          // Dispatch evento para cerrar modal
+                          window.dispatchEvent(new CustomEvent('closeForgotPasswordModal'));
+                        }
+                        // Navegar después de un pequeño delay
+                        setTimeout(() => {
+                          window.location.href = '/forgot-password';
+                        }, 100);
+                      }}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
                 )}
 
                 {field.name === "password" && showPasswordStrength && (

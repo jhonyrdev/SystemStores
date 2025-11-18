@@ -4,6 +4,8 @@ import { Routes, Route } from "react-router-dom";
 const Inicio = lazy(() => import("@pages/landing/inicio"));
 const Contacto = lazy(() => import("@pages/landing/contacto"));
 const Fq = lazy(() => import("@pages/landing/fq"));
+const ForgotPassword = lazy(() => import("@pages/landing/forgotPassword"));
+const ResetPassword = lazy(() => import("@pages/landing/resetPassword"));
 
 // Cliente
 const PerfilCliente = lazy(() => import("@/pages/client/perfilCliente"));
@@ -32,6 +34,8 @@ const AppRoutes = () => {
     <Suspense>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Rutas: layout PageWeb */}
         <Route path="/" element={<LayoutPage />}>
