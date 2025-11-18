@@ -3,8 +3,7 @@ package com.magicGroup.backend.services.ventasServices;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.magicGroup.backend.model.ventas.Boleta;
-import com.magicGroup.backend.repository.ventasRepository.BoletaRepository;
-import com.magicGroup.backend.repository.ventasRepository.VentaRepository;
+import com.magicGroup.backend.repository.ventasRepository.*;
 import java.lang.reflect.Field;
 import java.util.*;
 

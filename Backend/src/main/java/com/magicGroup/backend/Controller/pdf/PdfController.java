@@ -1,20 +1,16 @@
 package com.magicGroup.backend.Controller.pdf;
 
-import com.magicGroup.backend.model.ventas.Venta;
 import com.magicGroup.backend.pdf.PdfGeneratorService;
-import com.magicGroup.backend.repository.ventasRepository.VentaRepository;
-import com.magicGroup.backend.repository.ventasRepository.DetalleVentaRepository;
-import com.magicGroup.backend.repository.ventasRepository.FacturaRepository;
-import com.magicGroup.backend.repository.ventasRepository.BoletaRepository;
-import com.magicGroup.backend.model.ventas.Factura;
-import com.magicGroup.backend.model.ventas.Boleta;
-
+import com.magicGroup.backend.repository.ventasRepository.*;
+import com.magicGroup.backend.model.ventas.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-
+import lombok.RequiredArgsConstructor;
 import java.util.Optional;
 
+
 @RestController
+@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class PdfController {
 
@@ -24,16 +20,6 @@ public class PdfController {
     private final FacturaRepository facturaRepository;
     private final BoletaRepository boletaRepository;
 
-    public PdfController(PdfGeneratorService pdfGeneratorService,
-            VentaRepository ventaRepository, DetalleVentaRepository detalleVentaRepository,
-            FacturaRepository facturaRepository, BoletaRepository boletaRepository) {
-        this.pdfGeneratorService = pdfGeneratorService;
-        this.ventaRepository = ventaRepository;
-        this.detalleVentaRepository = detalleVentaRepository;
-        this.facturaRepository = facturaRepository;
-        this.boletaRepository = boletaRepository;
-    }
-
     @GetMapping("/api/pedidos/{id}/pdf")
     public ResponseEntity<byte[]> getPedidoPdf(@PathVariable Integer id,
             @RequestParam(required = false) String tipo,
@@ -41,11 +27,9 @@ public class PdfController {
             @RequestParam(required = false) String razon) {
 
         try {
-            // Start by resolving optional overrides from query params
             String resolvedRuc = (ruc != null && !ruc.isBlank()) ? ruc : null;
             String resolvedRazon = (razon != null && !razon.isBlank()) ? razon : null;
 
-            // Find Venta associated with this pedido id (use Venta as source of truth)
             Optional<Venta> ventaOpt = ventaRepository.findByPedido_IdPed(id);
             if (ventaOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -56,11 +40,9 @@ public class PdfController {
             String resolvedTipo = venta.getTipo() != null ? venta.getTipo().name().toLowerCase()
                     : (tipo == null ? "boleta" : tipo);
 
-            // fetch detalle ventas
             java.util.List<com.magicGroup.backend.model.ventas.DetalleVenta> detalleVentas = detalleVentaRepository
                     .findByVenta_IdVenta(venta.getIdVenta());
 
-            // Start with request overrides, then try factura entity values, then cliente
             String resolvedRucLocal = resolvedRuc;
             String resolvedRazonLocal = resolvedRazon;
             String codigoDocumento = null;
@@ -87,7 +69,6 @@ public class PdfController {
                 }
             }
 
-            // fallback to cliente code if still missing
             if (resolvedRucLocal == null || resolvedRucLocal.isBlank()) {
                 String codCli = venta.getCliente() != null ? venta.getCliente().getCodCli() : null;
                 if (codCli != null && codCli.matches("\\d{11}"))

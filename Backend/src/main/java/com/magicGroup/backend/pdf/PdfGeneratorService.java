@@ -28,7 +28,6 @@ public class PdfGeneratorService {
         float descX = MARGIN + 28;
         float unitColWidth = 50;
         float amountColWidth = 50;
-        // reduce small gaps between columns (was +8)
         float colGap = 4;
         float descColWidth = pageUsableWidth - (28 + unitColWidth + amountColWidth + colGap);
 
@@ -56,11 +55,9 @@ public class PdfGeneratorService {
 
                 PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
                 PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                // Header: center company info + title + folio + fecha/hora
                 float y = height - MARGIN - 6;
 
-                // Company name (centered)
-                String company = "NOMBRE DE LA EMPRESA S.A.C.";
+                String company = "TAMBITO";
                 float w = getTextWidth(fontBold, company, 12);
                 float x = (PAGE_WIDTH - w) / 2f;
                 cs.beginText();
@@ -70,7 +67,6 @@ public class PdfGeneratorService {
                 cs.endText();
                 y -= LINE_HEIGHT;
 
-                // RUC
                 String rucLine = "RUC: 12345678901";
                 w = getTextWidth(fontNormal, rucLine, 8);
                 x = (PAGE_WIDTH - w) / 2f;
@@ -81,18 +77,15 @@ public class PdfGeneratorService {
                 cs.endText();
                 y -= LINE_HEIGHT;
 
-                // Address / phone
-                String addr = "Av. Principal 123 - Lima (Tel: 999-999-999)";
+                String addr = "Av. Peru 458 - Lima (Tel: 984-587-485)";
                 w = getTextWidth(fontNormal, addr, 8);
                 x = (PAGE_WIDTH - w) / 2f;
                 cs.beginText();
                 cs.newLineAtOffset(x, y);
                 cs.showText(addr);
                 cs.endText();
-                // small extra gap between phone and next
                 y -= LINE_HEIGHT * 0.8f;
 
-                // Title (centered)
                 String title = "factura".equalsIgnoreCase(tipo) ? "FACTURA ELECTRÓNICA" : "BOLETA DE VENTA ELECTRÓNICA";
                 w = getTextWidth(fontBold, title, 10);
                 x = (PAGE_WIDTH - w) / 2f;
@@ -103,7 +96,6 @@ public class PdfGeneratorService {
                 cs.endText();
                 y -= LINE_HEIGHT;
 
-                // Folio under title (centered)
                 int folioId = folioSourceId != null ? folioSourceId
                         : (pedido != null && pedido.getIdPed() != null ? pedido.getIdPed() : 0);
                 String folio = ("boleta".equalsIgnoreCase(tipo) ? "B001-" : "F001-") + String.format("%08d", folioId);
@@ -128,7 +120,6 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(x, y);
                 cs.showText(fechaLine);
                 cs.endText();
-                // small extra vertical gap before client info
                 y -= LINE_HEIGHT * 1.2f;
 
                 cs.beginText();
@@ -167,18 +158,14 @@ public class PdfGeneratorService {
                 }
                 cs.endText();
 
-                // Start the table slightly further down so it doesn't overlap client info
                 float currentY = height - MARGIN - (LINE_HEIGHT * 10.2f);
                 float leftX = MARGIN;
                 float rightX = PAGE_WIDTH - MARGIN;
 
                 DecimalFormat dfmt = new DecimalFormat("0.00");
 
-                // Table header: CANT | DESCRIPCION | P. UNIT | IMPORTE
                 cs.beginText();
-                // Table header: use absolute positions so columns align
                 cs.setFont(fontBold, 9);
-                // CANT
                 cs.beginText();
                 cs.newLineAtOffset(leftX, currentY);
                 cs.showText("CANT");
@@ -188,7 +175,7 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(descX, currentY);
                 cs.showText("DESCRIPCION");
                 cs.endText();
-                // P. UNIT (right align to unit column)
+
                 String punitHeader = "P. UNIT";
                 float punitW = getTextWidth(fontBold, punitHeader, 9);
                 float unitXcalc = rightX - amountColWidth - colGap;
@@ -196,7 +183,7 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(unitXcalc - punitW, currentY);
                 cs.showText(punitHeader);
                 cs.endText();
-                // IMPORTE
+
                 String impHeader = "IMPORTE";
                 float impW = getTextWidth(fontBold, impHeader, 9);
                 cs.beginText();
@@ -233,13 +220,11 @@ public class PdfGeneratorService {
                     String unitText = dfmt.format(unit);
                     String amountText = dfmt.format(subtotal);
 
-                    // Quantity
                     cs.beginText();
                     cs.newLineAtOffset(leftX, currentY);
                     cs.showText(qtyText);
                     cs.endText();
 
-                    // Description lines
                     for (int i = 0; i < descLines.size(); i++) {
                         String line = descLines.get(i);
                         cs.beginText();
@@ -248,7 +233,6 @@ public class PdfGeneratorService {
                         cs.endText();
                     }
 
-                    // Unit price (on first line)
                     float unitWidth = getTextWidth(fontNormal, unitText, 9);
                     float amountWidth = getTextWidth(fontNormal, amountText, 9);
 
@@ -381,7 +365,6 @@ public class PdfGeneratorService {
             } else {
                 if (current.length() > 0)
                     lines.add(current.toString());
-                // if single word is longer than max, we truncate it
                 if (getTextWidth(font, w, fontSize) > maxWidth) {
                     String truncated = truncate(w, Math.max(10, (int) (maxWidth / (fontSize * 0.6))));
                     lines.add(truncated);
@@ -505,7 +488,6 @@ public class PdfGeneratorService {
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
                 PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                // Header: company info + document title (centered)
                 float y = height - MARGIN - 6;
 
                 String company = "TAMBITO";
@@ -535,8 +517,6 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(x, y);
                 cs.showText(addr);
                 cs.endText();
-                // small extra gap between phone and next (slightly larger so title has a bit
-                // more top margin)
                 y -= LINE_HEIGHT * 1.1f;
 
                 if (venta == null) {
@@ -571,7 +551,6 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(x, y);
                 cs.showText(folio);
                 cs.endText();
-                // small bottom margin after folio
                 y -= LINE_HEIGHT * 1.1f;
 
                 DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -585,7 +564,6 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(x, y);
                 cs.showText(fechaLine);
                 cs.endText();
-                // small extra vertical gap before client info
                 y -= LINE_HEIGHT * 1.2f;
 
                 cs.beginText();
@@ -621,32 +599,28 @@ public class PdfGeneratorService {
                                     ? venta.getPedido().getDireccion().getDireccion()
                                     : "Av. Perú 458, Lima, Lima";
                     cs.showText("Dirección: " + dir);
-                    // slightly increased bottom margin after Dirección
                     cs.newLineAtOffset(0, -LINE_HEIGHT * 1.1f);
                 }
 
                 cs.endText();
 
-                // Start the table slightly further down so it doesn't overlap client info
                 float currentY = height - MARGIN - (LINE_HEIGHT * 10.2f);
                 float leftX = MARGIN;
                 float rightX = PAGE_WIDTH - MARGIN;
 
                 DecimalFormat dfmt = new DecimalFormat("0.00");
 
-                // Table header: CANT | DESCRIPCION | P. UNIT | IMPORTE (absolute positions)
                 cs.setFont(fontBold, 9);
-                // CANT
                 cs.beginText();
                 cs.newLineAtOffset(leftX, currentY);
                 cs.showText("CANT");
                 cs.endText();
-                // DESCRIPCION
+
                 cs.beginText();
                 cs.newLineAtOffset(descX, currentY);
                 cs.showText("DESCRIPCION");
                 cs.endText();
-                // P. UNIT
+
                 String punitHeaderV = "P. UNIT";
                 float punitWV = getTextWidth(fontBold, punitHeaderV, 9);
                 float unitXcalcV = rightX - amountColWidth - colGap;
@@ -654,7 +628,7 @@ public class PdfGeneratorService {
                 cs.newLineAtOffset(unitXcalcV - punitWV, currentY);
                 cs.showText(punitHeaderV);
                 cs.endText();
-                // IMPORTE
+
                 String impHeaderV = "IMPORTE";
                 float impWV = getTextWidth(fontBold, impHeaderV, 9);
                 cs.beginText();
@@ -686,13 +660,11 @@ public class PdfGeneratorService {
                     String unitText = dfmt.format(unit);
                     String amountText = dfmt.format(subtotal);
 
-                    // Quantity
                     cs.beginText();
                     cs.newLineAtOffset(leftX, currentY);
                     cs.showText(qtyText);
                     cs.endText();
 
-                    // Description
                     for (int i = 0; i < descLines.size(); i++) {
                         cs.beginText();
                         cs.newLineAtOffset(descX, currentY - (i * LINE_HEIGHT));
