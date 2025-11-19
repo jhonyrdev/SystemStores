@@ -34,8 +34,6 @@ const AuthCallback = () => {
           { withCredentials: true }
         );
 
-        console.log("✅ Respuesta completa del backend:", data);
-
         if (!data.cliente) throw new Error("No se recibieron datos del cliente");
 
         const clienteMapeado = mapBackendToCliente(data.cliente);

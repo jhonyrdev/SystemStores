@@ -138,6 +138,36 @@ const GestionPedidos = () => {
       },
     },
     {
+      id: "pago",
+      header: "Pago",
+      cell: ({ row }) => {
+        // derive payment status from localStorage map or fallback
+        try {
+          const raw = localStorage.getItem("pedidosPagoStatus");
+          const map = raw ? JSON.parse(raw) : {};
+          const idPed = (row.getValue("idPed") as number) || 0;
+          const estadoPed = row.getValue("estado") as Pedido["estado"];
+          let pago = map[idPed];
+          if (!pago) {
+            if (estadoPed === "Realizado") pago = "pagado";
+            else if (estadoPed === "Rechazado") pago = "devuelto";
+            else pago = "pendiente";
+          }
+          const color =
+            pago === "pagado"
+              ? "bg-green-100 text-green-700"
+              : pago === "devuelto"
+              ? "bg-red-100 text-red-700"
+              : "bg-yellow-100 text-yellow-700";
+          return <Badge className={color}>{pago}</Badge>;
+        } catch {
+          return (
+            <Badge className="bg-yellow-100 text-yellow-700">pendiente</Badge>
+          );
+        }
+      },
+    },
+    {
       accessorKey: "total",
       header: "Monto Total",
       cell: ({ row }) => {

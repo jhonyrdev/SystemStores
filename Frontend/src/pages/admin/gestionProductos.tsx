@@ -5,11 +5,14 @@ import TableFiltro from "@components/common/tableFiltro";
 import TablePaginas from "@components/common/tablePaginas";
 import { Plus, Edit, Trash } from "lucide-react";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 import { listarProductos } from "@/services/productos/productoServices";
 import { listarCategorias } from "@/services/productos/categoriaServices";
 import { columnsProducto } from "@/constants/tabla/columnsProducto";
-import type { Producto } from "@/types/product";
+import type { Producto, Categoria } from "@/types/product";
 import FormProducto from "@/components/admin/formProducto";
+import { eliminarProducto } from "@/services/productos/productoServices";
 
 const GestionProductos = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -17,23 +20,24 @@ const GestionProductos = () => {
   const [categoriasFiltro, setCategoriasFiltro] = useState<string[]>(["Todos"]);
   const [page, setPage] = useState(1);
   const perPage = 10;
- 
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [productoEditar, setProductoEditar] = useState<Producto | undefined>(undefined);
+  const [productoEditar, setProductoEditar] = useState<Producto | undefined>(
+    undefined
+  );
 
   const fetchCategorias = async () => {
     try {
-      const data = await listarCategorias();
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nombresCategorias = data.map((c: any) => c.nombre);
-      
+      const data = (await listarCategorias()) as Categoria[];
+
+      const nombresCategorias = data.map((c) => c.nombre);
+
       const categoriasConTodos = ["Todos", ...nombresCategorias];
-      
+
       setCategoriasFiltro(categoriasConTodos);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error("Error al cargar categorías", { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Error al cargar categorías", { description: message });
     }
   };
 
@@ -43,9 +47,9 @@ const GestionProductos = () => {
       const data = await listarProductos();
       setProductos(data);
       setFiltered(data);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error("Error al cargar productos", { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Error al cargar productos", { description: message });
     }
   };
 
@@ -64,11 +68,21 @@ const GestionProductos = () => {
 
   const handleFilter = (type: string, value: string) => {
     let res = [...productos];
-    if (type === "Categoría" && value !== "Todos") res = res.filter((p) => p.categoria === value);
-    if (type === "Disponibilidad" && value !== "Todos") res = res.filter((p) => p.estado === value);
+    if (type === "Categoría" && value !== "Todos")
+      res = res.filter((p) => p.categoria === value);
+    if (type === "Disponibilidad" && value !== "Todos")
+      res = res.filter((p) => p.estado === value);
     if (type === "Precio") {
-      if (value === "Menor a mayor") res.sort((a, b) => parseFloat(a.precio.slice(1)) - parseFloat(b.precio.slice(1)));
-      else if (value === "Mayor a menor") res.sort((a, b) => parseFloat(b.precio.slice(1)) - parseFloat(a.precio.slice(1)));
+      if (value === "Menor a mayor")
+        res.sort(
+          (a, b) =>
+            parseFloat(a.precio.slice(1)) - parseFloat(b.precio.slice(1))
+        );
+      else if (value === "Mayor a menor")
+        res.sort(
+          (a, b) =>
+            parseFloat(b.precio.slice(1)) - parseFloat(a.precio.slice(1))
+        );
     }
     setFiltered(res);
     setPage(1);
@@ -87,12 +101,61 @@ const GestionProductos = () => {
     setModalOpen(true);
   };
 
+  const handleEliminarProducto = async (id?: number, nombre?: string) => {
+    if (!id) return;
+    const result = await Swal.fire({
+      title: `Eliminar ${nombre ?? "producto"}`,
+      text: "Esta acción es irreversible. ¿Deseas continuar?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await eliminarProducto(id);
+      await Swal.fire({ icon: "success", title: "Producto eliminado" });
+      fetchProductos();
+    } catch (err: unknown) {
+      const errObj = err as Record<string, unknown> | undefined;
+      const response = errObj?.response as Record<string, unknown> | undefined;
+      const status = response?.status as number | undefined;
+      let serverMsg: string | undefined;
+      const data = response?.data;
+      if (typeof data === "string") serverMsg = data;
+      else if (typeof data === "object" && data !== null) {
+        const dataObj = data as Record<string, unknown>;
+        if (typeof dataObj.message === "string") serverMsg = dataObj.message;
+        else serverMsg = JSON.stringify(dataObj);
+      }
+
+      let userMessage =
+        "No se pudo eliminar: el producto está asociado a una venta u otro registro en uso.";
+      if (status === 404) {
+        userMessage =
+          "Producto no encontrado en el servidor (404). Puede que ya haya sido eliminado.";
+      }
+
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar",
+        text: userMessage,
+        footer: typeof serverMsg === "string" ? serverMsg : undefined,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Productos</h1>
-        <Button onClick={handleNuevoProducto} className="bg-secundario text-black">
+        <Button
+          onClick={handleNuevoProducto}
+          className="bg-secundario text-black"
+        >
           <Plus className="h-4 w-4 mr-2" />
           <span className="hidden sm:inline">Añadir producto</span>
         </Button>
@@ -104,15 +167,23 @@ const GestionProductos = () => {
           searchPlaceholder="Buscar productos..."
           onSearch={handleSearch}
           filterGroups={[
-            { 
-              label: "Categoría", 
-              items: categoriasFiltro, 
+            {
+              label: "Categoría",
+              items: categoriasFiltro,
               onSelect: (val) => {
                 handleFilter("Categoría", val);
-              }
+              },
             },
-            { label: "Precio", items: ["Ninguno", "Menor a mayor", "Mayor a menor"], onSelect: (val) => handleFilter("Precio", val) },
-            { label: "Disponibilidad", items: ["Todos", "Disponible", "Critico", "Inactivo"], onSelect: (val) => handleFilter("Disponibilidad", val) },
+            {
+              label: "Precio",
+              items: ["Ninguno", "Menor a mayor", "Mayor a menor"],
+              onSelect: (val) => handleFilter("Precio", val),
+            },
+            {
+              label: "Disponibilidad",
+              items: ["Todos", "Disponible", "Critico", "Inactivo"],
+              onSelect: (val) => handleFilter("Disponibilidad", val),
+            },
           ]}
         />
 
@@ -126,8 +197,12 @@ const GestionProductos = () => {
               col.id === "acciones"
                 ? {
                     ...col,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    cell: ({ row }: import("@tanstack/react-table").CellContext<Producto, any>) => (
+                    cell: ({
+                      row,
+                    }: import("@tanstack/react-table").CellContext<
+                      Producto,
+                      unknown
+                    >) => (
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEditarProducto(row.original)}
@@ -136,7 +211,12 @@ const GestionProductos = () => {
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => alert(`Eliminar ${row.getValue("nombre")}`)}
+                          onClick={() =>
+                            handleEliminarProducto(
+                              row.original.idProd,
+                              String(row.getValue("nombre"))
+                            )
+                          }
                           className="p-1 text-red-600 hover:bg-red-100 rounded"
                         >
                           <Trash className="h-4 w-4" />
@@ -164,7 +244,7 @@ const GestionProductos = () => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         productToEdit={productoEditar}
-        onSuccess={fetchProductos} 
+        onSuccess={fetchProductos}
       />
     </div>
   );

@@ -48,6 +48,7 @@ interface DynamicFormProps {
   onGoogleLogin?: () => void;
   onOutlookLogin?: () => void;
   showSocialButtons?: boolean;
+  formError?: string | null;
 }
 
 const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -61,6 +62,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   onGoogleLogin,
   onOutlookLogin,
   showSocialButtons,
+  formError,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
@@ -118,7 +120,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-5">
       {title && <h2 className="text-xl font-semibold text-center">{title}</h2>}
-
       <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] md:max-h-[70vh] w-full pr-2">
         <div className="space-y-5">
           {fields.reduce<JSX.Element[]>((acc, field, index, arr) => {
@@ -348,6 +349,11 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
           }, [])}
         </div>
       </div>
+
+      {/* Mensaje de error justo encima del botón (fuera del área con scroll) */}
+      {formError && (
+        <div className="text-sm text-red-600 text-center mb-2">{formError}</div>
+      )}
 
       {/* Botón fuera del scroll */}
       <Button

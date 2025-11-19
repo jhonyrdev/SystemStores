@@ -84,8 +84,7 @@ export async function cambiarClaveUsuario(
     );
     return res.data;
   } catch (error: unknown) {
-    // AxiosError shape (parcial) para evitar any
-    type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
+        type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
     const e = error as AxiosLikeError;
     if (e.response?.data?.error) {
       throw new Error(e.response.data.error);

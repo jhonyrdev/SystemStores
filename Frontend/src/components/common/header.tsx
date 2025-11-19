@@ -1,5 +1,6 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useCarrito } from "@/context/carritoContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@components/ui/separator";
@@ -25,6 +26,9 @@ const Header: React.FC = () => {
 
   const [categorias, setCategorias] = useState([]);
 
+  const location = useLocation();
+  const isClientPanel = location.pathname.startsWith("/cuenta");
+
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
@@ -39,29 +43,55 @@ const Header: React.FC = () => {
   }, []);
 
   const [isCarritoOpen, setIsCarritoOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const { items } = useCarrito();
   const handleClick = () => {
     const usuarioGuardado = localStorage.getItem("usuario");
     if (usuarioGuardado) {
       navigate("/cuenta");
     } else {
+      setFormError(null);
       setModalOpen(true);
     }
   };
 
-  const { login, register } = UserAuth({
+  const { login, register, isBlocked, blockedUntil } = UserAuth({
     onSuccess: () => {
       toast.success("Acción Exitosa");
+      setFormError(null);
       setModalOpen(false);
     },
-    onError: (msg) =>
-      toast.error("Algo salió mal", {
-        description: msg,
-      }),
+    onError: (msg) => {
+      const text = msg || "Ocurrió un error";
+      const lowered = text.toLowerCase();
+      // if it's a block-related message, show it as form error
+      if (lowered.includes("bloque") || lowered.includes("demasiad")) {
+        setFormError(text);
+        return;
+      }
+
+      // map generic errors to short messages based on current view
+      if (isLoginView) {
+        setFormError("Error de credencial");
+      } else {
+        setFormError("Datos faltante");
+      }
+    },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (data: Record<string, any>) => {
     try {
+      if (isBlocked) {
+        const remainingMs = blockedUntil
+          ? Math.max(0, blockedUntil - Date.now())
+          : 0;
+        const mins = Math.ceil(remainingMs / 60000);
+        setFormError(
+          `Formulario de login bloqueado temporalmente. Inténtalo en ${mins} minuto(s)`
+        );
+        return;
+      }
       const { name, email, password } = data;
       if (isLoginView) {
         await login(email, password);
@@ -109,9 +139,13 @@ const Header: React.FC = () => {
         }
       >
         <DynamicForm
-          fields={isLoginView ? loginFields : registerFields}
+          fields={(isLoginView ? loginFields : registerFields).map((f) => ({
+            ...f,
+            disabled: (isLoginView && isBlocked) || !!f.disabled,
+          }))}
           submitLabel={isLoginView ? "Iniciar Sesión" : "Registrarse"}
           onSubmit={handleSubmit}
+          formError={formError}
           showPasswordStrength={!isLoginView}
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
@@ -125,7 +159,10 @@ const Header: React.FC = () => {
               ¿No tienes cuenta?{" "}
               <button
                 className="text-primary font-medium hover:underline"
-                onClick={() => setIsLoginView(false)}
+                onClick={() => {
+                  setIsLoginView(false);
+                  setFormError(null);
+                }}
               >
                 Regístrate
               </button>
@@ -135,7 +172,10 @@ const Header: React.FC = () => {
               ¿Ya tienes cuenta?{" "}
               <button
                 className="text-primary font-medium hover:underline"
-                onClick={() => setIsLoginView(true)}
+                onClick={() => {
+                  setIsLoginView(true);
+                  setFormError(null);
+                }}
               >
                 Inicia sesión
               </button>
@@ -172,15 +212,17 @@ const Header: React.FC = () => {
               />
             </Link>
 
-            {/* Menú Desktop */}
-            <ul className="hidden md:flex items-center space-x-6">
-              <li>
-                {/* Aquí quitamos el botón y mostramos el dropdown fijo */}
-                <div className="relative">
-                  <DropdownCateg categorias={categorias} />
-                </div>
-              </li>
-            </ul>
+            {/* Menú Desktop (solo en panel cliente) */}
+            {isClientPanel && (
+              <ul className="hidden md:flex items-center space-x-6">
+                <li>
+                  {/* Aquí quitamos el botón y mostramos el dropdown fijo */}
+                  <div className="relative">
+                    <DropdownCateg categorias={categorias} />
+                  </div>
+                </li>
+              </ul>
+            )}
 
             {/* Iconos */}
             <div className="flex items-center gap-4">
@@ -205,10 +247,15 @@ const Header: React.FC = () => {
               {/* Carrito */}
               <button
                 onClick={() => setIsCarritoOpen(true)}
-                className="text-primary hover:text-primary/80 cursor-pointer"
+                className="relative text-primary hover:text-primary/80 cursor-pointer"
                 aria-label="Abrir carrito"
               >
                 <ShoppingBag className="h-5 w-5" />
+                {items.length > 0 && (
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                    {items.length}
+                  </span>
+                )}
               </button>
 
               {/* Componente carrito aside */}

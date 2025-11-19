@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCarrito } from "@/context/carritoContext";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 import PagoModal from "@/components/client/pagoModal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { listarDireccionesCliente } from "@/services/cliente/direccionService";
 import { registrarPedido } from "@/services/ventas/pedidoService";
-import type { Direccion } from "@/types/direccion";
 import type { PedidoRequest, PedidoResponse } from "@/types/ventas";
 
 const Checkout = () => {
@@ -33,9 +25,7 @@ const Checkout = () => {
   }, []);
 
   const [metodoEnvio, setMetodoEnvio] = useState<"envio" | "recojo">("envio");
-  const [direccionSeleccionada, setDireccionSeleccionada] = useState("");
-  const [direcciones, setDirecciones] = useState<Direccion[]>([]);
-  const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
+
   const [metodoPago, setMetodoPago] = useState<number>(1);
   const [openPagoModal, setOpenPagoModal] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
@@ -44,64 +34,46 @@ const Checkout = () => {
   const [detallesConfirmados, setDetallesConfirmados] = useState(false);
   const [pedidoRegistrado, setPedidoRegistrado] =
     useState<PedidoResponse | null>(null);
+  const [creatingPedido, setCreatingPedido] = useState(false);
 
   const total = items.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
 
-  const cargarDirecciones = useCallback(async () => {
-    if (!usuario || !usuario.idCliente) {
-      toast.error("Debes iniciar sesión para continuar");
-      return;
-    }
-
-    try {
-      setCargandoDirecciones(true);
-      const dirs = await listarDireccionesCliente(usuario.idCliente);
-
-      if (!Array.isArray(dirs)) {
-        toast.error("Error: Formato de respuesta inválido");
-        return;
-      }
-
-      setDirecciones(dirs);
-
-      const dirEnUso = dirs.find((d) => d.enUso);
-      if (dirEnUso) {
-        setDireccionSeleccionada(dirEnUso.id.toString());
-      } else if (dirs.length > 0) {
-        setDireccionSeleccionada(dirs[0].id.toString());
-      }
-    } catch (error) {
-      toast.error("Error al cargar direcciones", {
-        description:
-          error instanceof Error ? error.message : "Error desconocido",
-      });
-      setDirecciones([]);
-    } finally {
-      setCargandoDirecciones(false);
-    }
-  }, [usuario]);
-
   useEffect(() => {
-    if (metodoEnvio === "envio") {
-      if (!usuario || !usuario.idCliente) {
-        toast.error("Debes iniciar sesión");
-        return;
+    // No se cargan direcciones automáticamente: envío es gratuito y no requiere asignar dirección
+    // Restaurar pedido pendiente (si el usuario recargó la página o cerró la pestaña)
+    try {
+      const stored = localStorage.getItem("pedidoRegistrado");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // support { pedido, expiresAt } shape
+        if (parsed && parsed.pedido) {
+          const expiresAt = parsed.expiresAt as number | undefined;
+          if (!expiresAt || expiresAt > Date.now()) {
+            setPedidoRegistrado(parsed.pedido as PedidoResponse);
+            // mark detalles confirmed so UI shows summary
+            setDetallesConfirmados(true);
+          } else {
+            // expired
+            try {
+              localStorage.removeItem("pedidoRegistrado");
+            } catch {
+              /* ignore */
+            }
+          }
+        } else if (parsed && parsed.id_ped) {
+          setPedidoRegistrado(parsed as PedidoResponse);
+        }
       }
-      cargarDirecciones();
-    } else {
-      setDirecciones([]);
-      setDireccionSeleccionada("");
+    } catch {
+      // ignore parse errors
     }
-  }, [metodoEnvio, usuario, cargarDirecciones]);
+  }, []);
 
   const handleConfirmarDetalles = async () => {
-    if (metodoEnvio === "envio" && !direccionSeleccionada) {
-      toast.warning("Selecciona una dirección para el envío.");
-      return;
-    }
+    // No requerimos dirección para el envío (gratuito)
 
     if (items.length === 0) {
       toast.warning("Tu carrito está vacío.");
@@ -112,13 +84,40 @@ const Checkout = () => {
       toast.error("Error: Usuario no válido");
       return;
     }
+    setDetallesConfirmados(true);
+    toast.success("Detalles confirmados. Puedes seguir añadiendo productos.");
+  };
 
+  const handleConfirmarPedido = async () => {
+    if (!usuario) {
+      toast.error("Debes iniciar sesión para continuar.");
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.warning("Tu carrito está vacío.");
+      return;
+    }
+
+    if (!detallesConfirmados) {
+      toast.error("Debes confirmar los detalles primero.");
+      return;
+    }
+
+    // If an order was already created, just open the payment modal.
+    if (pedidoRegistrado) {
+      setOpenPagoModal(true);
+      return;
+    }
+
+    if (creatingPedido) return;
+
+    setCreatingPedido(true);
     try {
       const pedidoData: PedidoRequest = {
         id_cli: usuario.idCliente,
         tipo_entrega: metodoEnvio,
-        id_dir:
-          metodoEnvio === "envio" ? parseInt(direccionSeleccionada) : undefined,
+        id_dir: undefined,
         total: total,
         detalles: items.map((item) => ({
           id_prod: item.id,
@@ -130,50 +129,94 @@ const Checkout = () => {
 
       const response = await registrarPedido(pedidoData);
       setPedidoRegistrado(response);
-      setDetallesConfirmados(true);
+      try {
+        const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+        const payload = { pedido: response, expiresAt };
+        localStorage.setItem("pedidoRegistrado", JSON.stringify(payload));
 
-      toast.success("Pedido registrado", {
-        description: `Pedido #${response.id_ped} - Estado: ${response.estado}`,
-      });
+        // mark payment status as 'pendiente' for this pedido
+        try {
+          const mapRaw = localStorage.getItem("pedidosPagoStatus");
+          const map = mapRaw ? JSON.parse(mapRaw) : {};
+          map[response.id_ped] = "pendiente";
+          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        // ignore storage errors
+      }
+      setOpenPagoModal(true);
     } catch (error) {
       toast.error("Error al registrar el pedido", {
         description:
           error instanceof Error ? error.message : "Intenta nuevamente",
       });
+    } finally {
+      setCreatingPedido(false);
     }
-  };
-
-  const handleConfirmarPedido = () => {
-    if (!usuario) {
-      toast.error("Debes iniciar sesión para continuar.");
-      return;
-    }
-
-    if (items.length === 0) {
-      toast.warning("Tu carrito está vacío.");
-      return;
-    }
-
-    if (!pedidoRegistrado) {
-      toast.error("Debes confirmar los detalles primero.");
-      return;
-    }
-
-    setOpenPagoModal(true);
   };
 
   const handlePagoResultado = (exito: boolean, ventaId?: number) => {
+    void ventaId;
+    setCreatingPedido(false);
     setOpenPagoModal(false);
     if (exito) {
-      toast.success(`Pago realizado`, {
-        description: `Venta #${ventaId} - ${tipoComprobante.toUpperCase()}`,
+      void Swal.fire({
+        icon: "success",
+        title: "Pago realizado",
+        timer: 1500,
+        showConfirmButton: false,
       });
       clearCarrito();
-      // resetear estado del pedido y confirmación de detalles
+      // mark pedido as paid in local map then remove stored pending pedido
+      try {
+        const stored = localStorage.getItem("pedidoRegistrado");
+        const parsed = stored ? JSON.parse(stored) : null;
+        const pid = parsed?.pedido?.id_ped ?? parsed?.id_ped;
+        if (pid) {
+          const mapRaw = localStorage.getItem("pedidosPagoStatus");
+          const map = mapRaw ? JSON.parse(mapRaw) : {};
+          map[pid] = "pagado";
+          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+        }
+      } catch {
+        /* ignore */
+      }
+
       setPedidoRegistrado(null);
+      try {
+        localStorage.removeItem("pedidoRegistrado");
+      } catch {
+        /* ignore */
+      }
       setDetallesConfirmados(false);
     } else {
-      toast.error("El pago ha fallado. Intenta nuevamente.");
+      // mark as cancelled and remove stored pending pedido
+      try {
+        const stored = localStorage.getItem("pedidoRegistrado");
+        const parsed = stored ? JSON.parse(stored) : null;
+        const pid = parsed?.pedido?.id_ped ?? parsed?.id_ped;
+        if (pid) {
+          const mapRaw = localStorage.getItem("pedidosPagoStatus");
+          const map = mapRaw ? JSON.parse(mapRaw) : {};
+          map[pid] = "cancelado";
+          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+        }
+      } catch {
+        /* ignore */
+      }
+      try {
+        localStorage.removeItem("pedidoRegistrado");
+      } catch {
+        /* ignore */
+      }
+      setPedidoRegistrado(null);
+      void Swal.fire({
+        icon: "error",
+        title: "Pago fallido",
+        text: "El pago ha fallado o fue cancelado.",
+      });
     }
   };
 
@@ -185,6 +228,7 @@ const Checkout = () => {
         return "Plin";
       case 3:
         return "Tarjeta";
+        setCreatingPedido(false);
       default:
         return "Yape";
     }
@@ -229,7 +273,7 @@ const Checkout = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="envio" id="envio" />
-                        <Label htmlFor="envio">Delivery (30 min aprox.)</Label>
+                        <Label htmlFor="envio">Delivery (Gratuito)</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="recojo" id="recojo" />
@@ -237,62 +281,7 @@ const Checkout = () => {
                       </div>
                     </RadioGroup>
 
-                    {metodoEnvio === "envio" && (
-                      <div className="mt-3">
-                        <Label>Selecciona dirección</Label>
-
-                        <Select
-                          value={direccionSeleccionada}
-                          onValueChange={setDireccionSeleccionada}
-                          disabled={
-                            cargandoDirecciones || direcciones.length === 0
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                cargandoDirecciones
-                                  ? "Cargando direcciones..."
-                                  : direcciones.length === 0
-                                  ? "No tienes direcciones registradas"
-                                  : "Elige una dirección"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {direcciones.length > 0 ? (
-                              direcciones.map((dir) => (
-                                <SelectItem
-                                  key={dir.id}
-                                  value={dir.id.toString()}
-                                >
-                                  {dir.texto}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="ninguna" disabled>
-                                No hay direcciones
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-
-                        {direcciones.length === 0 && !cargandoDirecciones && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                              Agrega una dirección desde tu perfil
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={cargarDirecciones}
-                            >
-                              Recargar direcciones
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Envío gratuito: no se solicita dirección */}
                   </div>
 
                   <Separator className="my-4" />
@@ -333,14 +322,6 @@ const Checkout = () => {
                     <strong>Método de envío:</strong>{" "}
                     {metodoEnvio === "envio" ? "Delivery" : "Recojo en tienda"}
                   </p>
-                  {metodoEnvio === "envio" && (
-                    <p>
-                      <strong>Dirección:</strong>{" "}
-                      {direcciones.find(
-                        (d) => d.id.toString() === direccionSeleccionada
-                      )?.texto || "No especificada"}
-                    </p>
-                  )}
                   <p>
                     <strong>Método de pago:</strong>{" "}
                     {getMetodoPagoTexto(metodoPago)}
@@ -390,10 +371,12 @@ const Checkout = () => {
                     <Button
                       className="flex-1 mt-4 bg-secundario text-black font-bold"
                       onClick={handleConfirmarPedido}
-                      disabled={!detallesConfirmados}
+                      disabled={!detallesConfirmados || creatingPedido}
                     >
                       {detallesConfirmados
-                        ? metodoPago === 1
+                        ? pedidoRegistrado
+                          ? "Proceder al pago"
+                          : metodoPago === 1
                           ? "Confirmar pedido"
                           : "Proceder al pago"
                         : "Confirma los detalles primero"}
@@ -407,14 +390,30 @@ const Checkout = () => {
                               "@/services/ventas/pedidoService"
                             );
                             await eliminarPedido(pedidoRegistrado.id_ped);
-                            toast.success("Pedido eliminado");
+                            await Swal.fire({
+                              icon: "success",
+                              title: "Pedido eliminado",
+                              timer: 1500,
+                              showConfirmButton: false,
+                            });
                             clearCarrito();
                             setPedidoRegistrado(null);
+                            try {
+                              localStorage.removeItem("pedidoRegistrado");
+                            } catch {
+                              /* ignore */
+                            }
                             setDetallesConfirmados(false);
                             setOpenPagoModal(false);
                           } catch (err) {
-                            console.error("Error eliminando pedido:", err);
-                            toast.error("No se pudo eliminar el pedido");
+                            const msg =
+                              err instanceof Error ? err.message : String(err);
+                            // show SweetAlert2 error with optional details
+                            await Swal.fire({
+                              icon: "error",
+                              title: "No se pudo eliminar el pedido",
+                              text: msg || undefined,
+                            });
                           }
                         }}
                       >
