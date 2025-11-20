@@ -329,7 +329,7 @@ const PaymentFormModals = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="card-holder">Titular de la tarjeta *</Label>
+                    <Label htmlFor="card-holder">Titular de la tarjeta. *</Label>
                     <Input
                       id="card-holder"
                       placeholder="Ej: JUAN PEREZ"
