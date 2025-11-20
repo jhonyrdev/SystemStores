@@ -95,3 +95,45 @@ export async function cambiarClaveUsuario(
     throw new Error('Error al cambiar la contraseña');
   }
 }
+
+// Solicitar recuperación de contraseña
+export async function solicitarRecuperacionContrasena(email: string): Promise<{ message: string }> {
+  try {
+    const res = await api.post<{ message: string }>(
+      "/api/usuarios/forgot-password",
+      { email }
+    );
+    return res.data;
+  } catch (error: unknown) {
+    type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
+    const e = error as AxiosLikeError;
+    if (e.response?.data?.error) {
+      throw new Error(e.response.data.error);
+    }
+    if (e instanceof Error) {
+      throw new Error(e.message || 'Error al solicitar recuperación de contraseña');
+    }
+    throw new Error('Error al solicitar recuperación de contraseña');
+  }
+}
+
+// Restablecer contraseña con token
+export async function restablecerContrasena(token: string, nuevaContrasena: string): Promise<{ message: string }> {
+  try {
+    const res = await api.post<{ message: string }>(
+      "/api/usuarios/reset-password",
+      { token, nuevaContrasena }
+    );
+    return res.data;
+  } catch (error: unknown) {
+    type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
+    const e = error as AxiosLikeError;
+    if (e.response?.data?.error) {
+      throw new Error(e.response.data.error);
+    }
+    if (e instanceof Error) {
+      throw new Error(e.message || 'Error al restablecer contraseña');
+    }
+    throw new Error('Error al restablecer contraseña');
+  }
+}

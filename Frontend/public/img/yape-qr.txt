@@ -1,0 +1,2 @@
+Coloca aquí la imagen real del QR de Yape como yape-qr.png en esta misma carpeta.
+Este archivo es solo un marcador para recordar subir /img/yape-qr.png.

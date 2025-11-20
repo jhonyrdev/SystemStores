@@ -165,4 +165,60 @@ public class AuthController {
 			return ResponseEntity.status(500).body(Map.of("error", "Error al cambiar la contraseña"));
 		}
 	}
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+		String email = body.get("email");
+
+		if (email == null || email.isBlank()) {
+			return ResponseEntity.status(400).body(Map.of("error", "Email es requerido"));
+		}
+
+		try {
+			authService.solicitarRecuperacionContrasena(email);
+			// Por seguridad, siempre devolvemos el mismo mensaje
+			return ResponseEntity.ok(Map.of(
+				"message", "Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"
+			));
+		} catch (RuntimeException e) {
+			// Si es usuario de Google, informamos específicamente
+			if (e.getMessage().contains("Google")) {
+				return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+			}
+			// Para otros errores, mensaje genérico por seguridad
+			return ResponseEntity.ok(Map.of(
+				"message", "Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"
+			));
+		}
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+		String token = body.get("token");
+		String nuevaContrasena = body.get("nuevaContrasena");
+
+		if (token == null || token.isBlank()) {
+			return ResponseEntity.status(400).body(Map.of("error", "Token es requerido"));
+		}
+
+		if (nuevaContrasena == null || nuevaContrasena.isBlank()) {
+			return ResponseEntity.status(400).body(Map.of("error", "Nueva contraseña es requerida"));
+		}
+
+		// Validaciones de la contraseña
+		if (nuevaContrasena.length() < 8) {
+			return ResponseEntity.status(400).body(Map.of("error", "La contraseña debe tener al menos 8 caracteres"));
+		}
+
+		if (!nuevaContrasena.matches(".*[A-Za-z].*") || !nuevaContrasena.matches(".*[0-9].*")) {
+			return ResponseEntity.status(400).body(Map.of("error", "La contraseña debe contener letras y números"));
+		}
+
+		try {
+			authService.restablecerContrasena(token, nuevaContrasena);
+			return ResponseEntity.ok(Map.of("message", "Contraseña restablecida exitosamente"));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+		}
+	}
 }

@@ -8,6 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import PagoModal from "@/components/client/pagoModal";
+import PaymentFormModals from "@/components/client/paymentFormModals";
+import { listarDireccionesCliente } from "@/services/cliente/direccionService";
+import type { Direccion } from "@/types/direccion";
 import { registrarPedido } from "@/services/ventas/pedidoService";
 import type { PedidoRequest, PedidoResponse } from "@/types/ventas";
 
@@ -22,12 +25,15 @@ const Checkout = () => {
     } catch {
       return null;
     }
-  }, []);
+  }, [usuario]);
 
   const [metodoEnvio, setMetodoEnvio] = useState<"envio" | "recojo">("envio");
-
-  const [metodoPago, setMetodoPago] = useState<number>(1);
+  const [direccionSeleccionada, setDireccionSeleccionada] = useState("");
+  const [direcciones, setDirecciones] = useState<Direccion[]>([]);
+  const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
+  const [metodoPago, setMetodoPago] = useState<number | null>(1);
   const [openPagoModal, setOpenPagoModal] = useState(false);
+  const [openPaymentForm, setOpenPaymentForm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
     "boleta"
   );
@@ -42,6 +48,22 @@ const Checkout = () => {
   );
 
   useEffect(() => {
+    // cargar direcciones del cliente si aplica
+    const cargarDirecciones = async () => {
+      try {
+        setCargandoDirecciones(true);
+        if (usuario?.idCliente) {
+          const data = await listarDireccionesCliente(usuario.idCliente);
+          setDirecciones(data as Direccion[]);
+        }
+      } catch (err) {
+        /* ignore */
+      } finally {
+        setCargandoDirecciones(false);
+      }
+    };
+
+    void cargarDirecciones();
     // No se cargan direcciones automáticamente: envío es gratuito y no requiere asignar dirección
     // Restaurar pedido pendiente (si el usuario recargó la página o cerró la pestaña)
     try {
@@ -228,7 +250,6 @@ const Checkout = () => {
         return "Plin";
       case 3:
         return "Tarjeta";
-        setCreatingPedido(false);
       default:
         return "Yape";
     }
@@ -289,8 +310,11 @@ const Checkout = () => {
                   <div>
                     <Label className="font-semibold">Método de pago</Label>
                     <RadioGroup
-                      value={metodoPago.toString()}
-                      onValueChange={(val) => setMetodoPago(parseInt(val))}
+                      value={metodoPago?.toString() || ""}
+                      onValueChange={(val) => {
+                        setMetodoPago(parseInt(val));
+                        setOpenPaymentForm(true);
+                      }}
                       className="space-y-3 mt-2"
                     >
                       <div className="flex items-center space-x-2">
@@ -324,7 +348,7 @@ const Checkout = () => {
                   </p>
                   <p>
                     <strong>Método de pago:</strong>{" "}
-                    {getMetodoPagoTexto(metodoPago)}
+                    {getMetodoPagoTexto(metodoPago ?? 1)}
                   </p>
                 </div>
               )}
@@ -435,12 +459,19 @@ const Checkout = () => {
           tipoComprobante={tipoComprobante}
           setTipoComprobante={setTipoComprobante}
           pedidoRegistrado={pedidoRegistrado}
-          idMetodo={metodoPago}
+          idMetodo={metodoPago ?? 1}
           totalVenta={total}
           detallesVenta={items}
           onResultado={handlePagoResultado}
         />
       )}
+
+      <PaymentFormModals
+        metodoPago={metodoPago}
+        open={openPaymentForm}
+        onOpenChange={setOpenPaymentForm}
+        onConfirm={() => setOpenPaymentForm(false)}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, type JSX } from "react";
+import { Link } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { MdOutlineMail as SiMicrosoftoutlook } from "react-icons/md";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface DynamicFormProps {
   onOutlookLogin?: () => void;
   showSocialButtons?: boolean;
   formError?: string | null;
+  showForgotPassword?: boolean;
 }
 
 const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -63,6 +65,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   onOutlookLogin,
   showSocialButtons,
   formError,
+  showForgotPassword = false,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
@@ -314,6 +317,34 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
 
                 {field.error && (
                   <p className="text-xs text-red-600 mt-1">{field.error}</p>
+                )}
+
+                {/* Enlace "Olvidaste tu contraseña" para campo password */}
+                {field.type === "password" && showForgotPassword && (
+                  <div className="text-right mt-2">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Cerrar modal si está dentro de uno
+                        const modal = (e.target as HTMLElement).closest(
+                          '[role="dialog"]'
+                        );
+                        if (modal) {
+                          window.dispatchEvent(
+                            new CustomEvent("closeForgotPasswordModal")
+                          );
+                        }
+                        // Navegar después de un pequeño delay
+                        setTimeout(() => {
+                          window.location.href = "/forgot-password";
+                        }, 100);
+                      }}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
                 )}
 
                 {field.name === "password" && showPasswordStrength && (

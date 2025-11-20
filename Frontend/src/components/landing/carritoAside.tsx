@@ -32,6 +32,22 @@ const CarritoAside = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
 
+  // Debug
+  console.log('CarritoAside - isLoginView:', isLoginView, 'modalOpen:', modalOpen);
+
+  // Cerrar modal cuando se navega a forgot-password
+  useEffect(() => {
+    const handleCloseModal = () => {
+      setModalOpen(false);
+    };
+    
+    window.addEventListener('closeForgotPasswordModal', handleCloseModal);
+    
+    return () => {
+      window.removeEventListener('closeForgotPasswordModal', handleCloseModal);
+    };
+  }, []);
+
   const { login, register } = UserAuth({
     onSuccess: () => {
       toast.success("Acción Exitosa");
@@ -227,6 +243,7 @@ const CarritoAside = ({
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
           showSocialButtons={true}
+          showForgotPassword={isLoginView}
         />
 
         <div className="text-center mt-4 text-sm text-muted-foreground">
