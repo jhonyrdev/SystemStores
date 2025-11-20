@@ -1,0 +1,2 @@
+Coloca aquí la imagen real del QR de Plin como plin-qr.png en esta misma carpeta.
+Este archivo es solo un marcador para recordar subir /img/plin-qr.png.

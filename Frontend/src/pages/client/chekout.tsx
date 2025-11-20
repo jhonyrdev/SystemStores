@@ -37,7 +37,7 @@ const Checkout = () => {
   const [direccionSeleccionada, setDireccionSeleccionada] = useState("");
   const [direcciones, setDirecciones] = useState<Direccion[]>([]);
   const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
-  const [metodoPago, setMetodoPago] = useState<number>(1);
+  const [metodoPago, setMetodoPago] = useState<number | null>(null);
   const [openPagoModal, setOpenPagoModal] = useState(false);
   const [openPaymentForm, setOpenPaymentForm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
@@ -302,7 +302,7 @@ const Checkout = () => {
                   <div>
                     <Label className="font-semibold">Método de pago</Label>
                     <RadioGroup
-                      value={metodoPago.toString()}
+                      value={metodoPago?.toString() || ""}
                       onValueChange={(val) => {
                         setMetodoPago(parseInt(val));
                         setOpenPaymentForm(true);
