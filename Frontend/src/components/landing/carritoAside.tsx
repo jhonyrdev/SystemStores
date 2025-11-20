@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useCarrito } from "@/context/carritoContext";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Modal from "@components/common/Modal";
 import DynamicForm from "@components/common/dynamicForm";
 import { loginFields, registerFields } from "@/constants/authFields";
@@ -18,6 +18,22 @@ const CarritoAside = ({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange:
 
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
+
+  // Debug
+  console.log('CarritoAside - isLoginView:', isLoginView, 'modalOpen:', modalOpen);
+
+  // Cerrar modal cuando se navega a forgot-password
+  useEffect(() => {
+    const handleCloseModal = () => {
+      setModalOpen(false);
+    };
+    
+    window.addEventListener('closeForgotPasswordModal', handleCloseModal);
+    
+    return () => {
+      window.removeEventListener('closeForgotPasswordModal', handleCloseModal);
+    };
+  }, []);
 
   const { login, register } = UserAuth({
     onSuccess: () => {
@@ -96,6 +112,7 @@ const CarritoAside = ({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange:
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
           showSocialButtons={true}
+          showForgotPassword={isLoginView}
         />
 
         <div className="text-center mt-4 text-sm text-muted-foreground">

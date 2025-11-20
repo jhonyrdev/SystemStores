@@ -1,4 +1,5 @@
 import * as React from "react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +31,16 @@ const Modal: React.FC<ModalProps> = ({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
       <DialogContent className="max-w-lg sm:max-w-2xl z-[100] overflow-hidden">
-        {(title || description) && (
-          <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
-            {description && (
-              <DialogDescription>{description}</DialogDescription>
-            )}
-          </DialogHeader>
-        )}
+        <DialogHeader>
+          {title && <DialogTitle>{title}</DialogTitle>}
+          {description ? (
+            <DialogDescription>{description}</DialogDescription>
+          ) : (
+            <VisuallyHidden>
+              <DialogDescription>Diálogo de contenido</DialogDescription>
+            </VisuallyHidden>
+          )}
+        </DialogHeader>
 
         <div className="mt-2 overflow-x-hidden">{children}</div>
       </DialogContent>

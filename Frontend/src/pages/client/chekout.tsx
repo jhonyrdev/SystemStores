@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import PagoModal from "@/components/client/pagoModal";
+import PaymentFormModals from "@/components/client/paymentFormModals";
 import {
   Select,
   SelectContent,
@@ -36,8 +37,9 @@ const Checkout = () => {
   const [direccionSeleccionada, setDireccionSeleccionada] = useState("");
   const [direcciones, setDirecciones] = useState<Direccion[]>([]);
   const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
-  const [metodoPago, setMetodoPago] = useState<number>(1);
+  const [metodoPago, setMetodoPago] = useState<number | null>(null);
   const [openPagoModal, setOpenPagoModal] = useState(false);
+  const [openPaymentForm, setOpenPaymentForm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
     "boleta"
   );
@@ -300,8 +302,11 @@ const Checkout = () => {
                   <div>
                     <Label className="font-semibold">Método de pago</Label>
                     <RadioGroup
-                      value={metodoPago.toString()}
-                      onValueChange={(val) => setMetodoPago(parseInt(val))}
+                      value={metodoPago?.toString() || ""}
+                      onValueChange={(val) => {
+                        setMetodoPago(parseInt(val));
+                        setOpenPaymentForm(true);
+                      }}
                       className="space-y-3 mt-2"
                     >
                       <div className="flex items-center space-x-2">
@@ -442,6 +447,13 @@ const Checkout = () => {
           onResultado={handlePagoResultado}
         />
       )}
+
+      <PaymentFormModals
+        metodoPago={metodoPago}
+        open={openPaymentForm}
+        onOpenChange={setOpenPaymentForm}
+        onConfirm={() => setOpenPaymentForm(false)}
+      />
     </div>
   );
 };

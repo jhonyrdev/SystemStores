@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.slf4j.*;
@@ -44,6 +45,8 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final ClienteService clienteService;
 	private final RegistroService registroService;
+	private final PasswordResetTokenRepository passwordResetTokenRepository;
+	private final EmailService emailService;
 
 	private final RestTemplate restTemplate = new RestTemplate();
 
@@ -307,5 +310,74 @@ public class AuthService {
 		}
 
 		return Optional.empty();
+	}
+
+	// Solicitar recuperación de contraseña
+	@Transactional
+	public void solicitarRecuperacionContrasena(String email) {
+		Optional<Cliente> clienteOpt = clienteRepository.findByCorreoCli(email);
+		
+		if (clienteOpt.isEmpty()) {
+			// Por seguridad, no revelamos si el email existe o no
+			logger.warn("Solicitud de recuperación para email no registrado: {}", email);
+			return;
+		}
+
+		Cliente cliente = clienteOpt.get();
+		
+		// Verificar que no sea usuario de Google
+		if (esUsuarioGoogle(cliente.getCredencial())) {
+			throw new RuntimeException("Este usuario fue creado con Google. No puede restablecer contraseña.");
+		}
+
+		// Eliminar tokens anteriores del cliente
+		passwordResetTokenRepository.deleteByCliente(cliente);
+
+		// Generar nuevo token
+		String token = UUID.randomUUID().toString();
+		PasswordResetToken resetToken = new PasswordResetToken();
+		resetToken.setToken(token);
+		resetToken.setCliente(cliente);
+		resetToken.setExpiryDate(LocalDateTime.now().plusHours(1)); // Token válido por 1 hora
+		resetToken.setUsado(false);
+		
+		passwordResetTokenRepository.save(resetToken);
+
+		// Enviar email
+		emailService.sendPasswordResetEmail(email, token);
+		logger.info("Token de recuperación generado para cliente: {}", cliente.getIdCli());
+	}
+
+	// Restablecer contraseña con token
+	@Transactional
+	public void restablecerContrasena(String token, String nuevaContrasena) {
+		Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(token);
+		
+		if (tokenOpt.isEmpty()) {
+			throw new RuntimeException("Token inválido");
+		}
+
+		PasswordResetToken resetToken = tokenOpt.get();
+
+		if (resetToken.isUsado()) {
+			throw new RuntimeException("Este token ya fue utilizado");
+		}
+
+		if (resetToken.isExpired()) {
+			throw new RuntimeException("El token ha expirado");
+		}
+
+		Cliente cliente = resetToken.getCliente();
+		Credencial credencial = cliente.getCredencial();
+
+		// Actualizar contraseña
+		credencial.setClave(passwordEncoder.encode(nuevaContrasena));
+		credencialRepository.save(credencial);
+
+		// Marcar token como usado
+		resetToken.setUsado(true);
+		passwordResetTokenRepository.save(resetToken);
+
+		logger.info("Contraseña restablecida exitosamente para cliente: {}", cliente.getIdCli());
 	}
 }
