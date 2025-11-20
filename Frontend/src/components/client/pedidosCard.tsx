@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "@/services/api/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Eye, XCircle } from "lucide-react";
 import {
@@ -21,6 +22,10 @@ interface Usuario {
 
 const PedidosCard = () => {
   const [verHistorial, setVerHistorial] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [currentPedidoId, setCurrentPedidoId] = useState<number | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [pedidosActivos, setPedidosActivos] = useState<Pedido[]>([]);
   const [historialPedidos, setHistorialPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +167,30 @@ const PedidosCard = () => {
     }
   };
 
+  const openPdf = async (id: number) => {
+    try {
+      setPdfLoading(true);
+      // request as blob so we can embed regardless of server X-Frame-Options
+      const resp = await api.get(`/api/pedidos/${id}/pdf`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([resp.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      // revoke previous
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(url);
+      setCurrentPedidoId(id);
+      setPdfOpen(true);
+    } catch (err) {
+      console.error("Error fetching PDF:", err);
+      alert(
+        "No se pudo cargar el comprobante. Revisa tu sesión o inténtalo más tarde."
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl lg:max-w-4xl mx-auto p-4 border rounded shadow">
@@ -222,7 +251,10 @@ const PedidosCard = () => {
                     </td>
                     <td className="px-4 py-2 border-b">{pedido.estado}</td>
                     <td className="px-4 py-2 border-b">
-                      <span className="text-blue-600 cursor-pointer hover:underline">
+                      <span
+                        className="text-blue-600 cursor-pointer hover:underline"
+                        onClick={() => openPdf(pedido.idPed)}
+                      >
                         Ver detalles
                       </span>
                     </td>
@@ -266,6 +298,50 @@ const PedidosCard = () => {
             </Button>
           </div>
         ))
+      )}
+      {pdfOpen && pdfUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-11/12 md:w-3/4 lg:w-2/3 h-3/4 rounded shadow-lg overflow-hidden">
+            <div className="flex justify-between items-center p-2 border-b">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">
+                  Comprobante - {currentPedidoId}{" "}
+                  {pdfLoading && (
+                    <span className="text-xs text-gray-500">(Cargando...)</span>
+                  )}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={pdfUrl ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Abrir en nueva pestaña
+                </a>
+                <button
+                  className="text-sm text-red-600 px-3"
+                  onClick={() => {
+                    setPdfOpen(false);
+                    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+                    setPdfUrl(null);
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="p-2 h-full">
+              <embed
+                src={pdfUrl}
+                type="application/pdf"
+                width="100%"
+                height="100%"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

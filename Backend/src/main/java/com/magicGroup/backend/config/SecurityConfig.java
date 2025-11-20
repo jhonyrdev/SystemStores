@@ -13,10 +13,10 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.csrf(csrf -> csrf.disable())
-				.cors(cors -> cors.configurationSource(new CorsConfig().corsConfigurationSource()))
+				.cors(cors -> {})
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/**",
-								"/uploads/**")
+								"/uploads/**","/api/pdf/**")
 						.permitAll()
 						.anyRequest().authenticated()
 				)

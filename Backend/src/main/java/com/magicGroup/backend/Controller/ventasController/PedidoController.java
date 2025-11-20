@@ -1,7 +1,6 @@
 package com.magicGroup.backend.Controller.ventasController;
 
-import com.magicGroup.backend.model.ventas.Pedido;
-import com.magicGroup.backend.model.ventas.DetallePedido;
+import com.magicGroup.backend.model.ventas.*;
 import com.magicGroup.backend.services.ventasServices.ventasServicesImpl.PedidoServiceImpl;
 import com.magicGroup.backend.services.ventasServices.DetallePedidoService;
 import lombok.RequiredArgsConstructor;

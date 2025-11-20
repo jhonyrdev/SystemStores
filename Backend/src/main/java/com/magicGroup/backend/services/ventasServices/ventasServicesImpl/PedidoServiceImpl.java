@@ -37,16 +37,13 @@ public class PedidoServiceImpl extends GenericServiceImpl<Pedido, Integer> imple
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + idPedido));
 
-        // Solo se puede cancelar si está en estado "Nuevo"
         if (pedido.getEstado() != Pedido.Estado.Nuevo) {
             throw new IllegalArgumentException("Solo se pueden cancelar pedidos en estado 'Nuevo'");
         }
-        // Restaurar stock de cada detalle del pedido
         if (pedido.getDetallePedidos() != null && !pedido.getDetallePedidos().isEmpty()) {
             pedido.getDetallePedidos().forEach(det -> {
                 Integer idProd = det.getProducto().getIdProd();
                 int cantidad = det.getCantidad();
-                // aumentar stock atomicamente
                 productoService.increaseStock(idProd, cantidad);
             });
         }
@@ -85,9 +82,6 @@ public class PedidoServiceImpl extends GenericServiceImpl<Pedido, Integer> imple
                 productoService.increaseStock(idProd, cantidad);
             });
         }
-
-        // Borrar el pedido junto con sus detalles (cascade en la entidad debería
-        // manejarlo)
         pedidoRepository.delete(pedido);
     }
 
