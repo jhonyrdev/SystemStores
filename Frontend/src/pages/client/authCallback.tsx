@@ -21,7 +21,6 @@ const AuthCallback = () => {
     const code = params.get("code");
 
     if (!code) {
-      toast.error("Error", { description: "No se recibió el código de autorización" });
       navigate("/");
       return;
     }
@@ -42,8 +41,7 @@ const AuthCallback = () => {
         toast.success("¡Bienvenido!", { description: `Hola ${data.cliente.nombre}` });
         navigate("/cuenta");
       } catch (err: unknown) {
-        console.error("❌ Error al iniciar sesión:", err);
-        toast.error("Error al iniciar sesión", { description: "Hubo un error en el servidor." });
+        console.error("Error al iniciar sesión:", err);
         navigate("/");
       }
     };

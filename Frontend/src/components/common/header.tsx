@@ -20,17 +20,13 @@ import { listarCategorias } from "@/services/productos/categoriaServices";
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
   const [formResetCounter, setFormResetCounter] = useState(0);
-
   const [categorias, setCategorias] = useState([]);
-
   const location = useLocation();
   const isClientPanel = location.pathname.startsWith("/cuenta");
 
-  // Cerrar modal cuando se navega a forgot-password
   useEffect(() => {
     const handleCloseModal = () => {
       setModalOpen(false);
@@ -65,7 +61,6 @@ const Header: React.FC = () => {
     if (usuarioGuardado) {
       navigate("/cuenta");
     } else {
-      // Always open the modal in the login view when clicking the user button
       setIsLoginView(true);
       setFormError(null);
       setFormSuccess(null);
@@ -76,21 +71,16 @@ const Header: React.FC = () => {
 
   const { login, register, isBlocked, blockedUntil } = UserAuth({
     onSuccess: () => {
-      // keep minimal: clear any error; UI success handled in handleSubmit
       setFormError(null);
     },
     onError: (msg) => {
       const text = msg || "Ocurrió un error";
       const lowered = text.toLowerCase();
-      // if it's a block-related message, show it as form error
       if (lowered.includes("bloque") || lowered.includes("demasiad")) {
         setFormError(text);
         return;
       }
-
-      // map generic errors to short messages based on current view
       if (isLoginView) {
-        // Improve error messages: detect 'not found' style errors
         if (
           lowered.includes("no encontr") ||
           lowered.includes("not found") ||
@@ -103,8 +93,6 @@ const Header: React.FC = () => {
         } else {
           setFormError("Credenciales inválidas.");
         }
-
-        // after a short delay, clear the error and reset login inputs
         setTimeout(() => {
           setFormError(null);
           setFormResetCounter((c) => c + 1);
@@ -162,9 +150,7 @@ const Header: React.FC = () => {
         }
       } else {
         await register(name, email, password);
-        // registration succeeded: show inline success message in the form
         setFormSuccess("Registro exitoso");
-        // reset fields after a short delay and close modal
         setTimeout(() => {
           setFormSuccess(null);
           setFormResetCounter((c) => c + 1);

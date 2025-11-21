@@ -31,7 +31,6 @@ export interface FieldConfig {
   options?: { label: string; value: string }[];
   required?: boolean;
   disabled?: boolean;
-  // Optional validation error message to display under the field
   error?: string;
 }
 
@@ -50,12 +49,9 @@ interface DynamicFormProps {
   onOutlookLogin?: () => void;
   showSocialButtons?: boolean;
   formError?: string | null;
-  /** optional success message shown like formError but styled for success */
   formSuccess?: string | null;
   showForgotPassword?: boolean;
-  // When this value changes the form will reset to `initialValues`
   resetTrigger?: number;
-  /** where to display the form error: 'top' renders above the first input, 'bottom' renders above the submit button */
   formErrorPosition?: "top" | "bottom";
 }
 
@@ -99,7 +95,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
         setImagenPreview(null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetTrigger]);
 
   const handleChange = (name: string, value: string) => {

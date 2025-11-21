@@ -33,7 +33,6 @@ export async function loginUsuario(
       throw new Error(e.response.data.error);
     }
     if (e.response?.status === 401) {
-      // unauthorized = invalid credentials or not found
       throw new Error("UNAUTHORIZED");
     }
     if (error instanceof Error) {

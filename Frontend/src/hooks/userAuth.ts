@@ -22,7 +22,6 @@ const readInfo = (): BlockInfo => {
     if (!raw) return DEFAULT_INFO;
     const parsed = JSON.parse(raw) as BlockInfo;
     if (!parsed) return DEFAULT_INFO;
-    // if blockedUntil expired, reset
     if (parsed.blockedUntil && parsed.blockedUntil <= Date.now()) {
       return DEFAULT_INFO;
     }
@@ -60,7 +59,6 @@ const UserAuth = ({ onSuccess, onError }: UserAuthOptions = {}) => {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      // re-read storage to be consistent across tabs
       const currentInfo = readInfo();
       if (currentInfo.blockedUntil && currentInfo.blockedUntil > Date.now()) {
         const remaining = Math.max(0, currentInfo.blockedUntil - Date.now());
@@ -94,7 +92,6 @@ const UserAuth = ({ onSuccess, onError }: UserAuthOptions = {}) => {
         window.dispatchEvent(new Event("userLoggedIn"));
         navigate("/cuenta");
         onSuccess?.();
-        // reset info on success
         writeInfo(DEFAULT_INFO);
         return userData;
       } catch (error: unknown) {
