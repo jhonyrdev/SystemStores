@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/button";
-import { useConfirmModal } from "@/hooks/useconfirmModal";
-import ConfirmModal from "@components/common/confirmModal";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 import { useEffect, useState } from "react";
 import type { Cliente } from "@/types/cliente";
 
@@ -11,10 +11,10 @@ interface Props {
 
 const ClientSliderbar: React.FC<Props> = ({ onSelect }) => {
   const navigate = useNavigate();
-  const { confirm, modalProps } = useConfirmModal();
+  // using SweetAlert2 for confirmation instead of local ConfirmModal here
 
   const [usuario, setUsuario] = useState<Cliente | null>(null);
-  
+
   useEffect(() => {
     const storedUser = localStorage.getItem("usuario");
     if (storedUser) {
@@ -42,7 +42,24 @@ const ClientSliderbar: React.FC<Props> = ({ onSelect }) => {
   };
 
   const handleLogoutClick = () => {
-    confirm("¿Estás seguro de que deseas cerrar sesión?", handleLogout);
+    Swal.fire({
+      title: "¿Deseas cerrar sesión?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#30d6b8ff",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, cerrar sesión",
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleLogout();
+        Swal.fire({
+          title: "Hecho",
+          text: "Sesión finalizada.",
+          icon: "success",
+        });
+      }
+    });
   };
 
   const nombreCompleto = usuario?.nombre
@@ -57,7 +74,9 @@ const ClientSliderbar: React.FC<Props> = ({ onSelect }) => {
         loading="lazy"
         className="rounded-full mb-3 mx-auto w-20 h-20 object-cover"
       />
-      <h5 className="text-lg font-bold text-center text-principal">{nombreCompleto}</h5>
+      <h5 className="text-lg font-bold text-center text-principal">
+        {nombreCompleto}
+      </h5>
 
       <nav className="mt-6 flex flex-col space-y-2">
         <NavLink
@@ -126,7 +145,6 @@ const ClientSliderbar: React.FC<Props> = ({ onSelect }) => {
         >
           Cerrar Sesión
         </Button>
-        <ConfirmModal {...modalProps} />
       </nav>
     </div>
   );

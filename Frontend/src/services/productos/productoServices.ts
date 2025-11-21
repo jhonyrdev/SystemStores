@@ -1,17 +1,18 @@
 import type { Producto, ProductoFormData } from "@/types/product";
-import api from "@/utils/axiomInstance";
+import api, { baseURL, TOKEN_KEY } from "@/utils/axiomInstance";
 
 export async function listarProductos(): Promise<Producto[]> {
   try {
     const res = await api.get<Producto[]>("/api/productos");
     return res.data;
-  } catch (error: unknown) {
-    console.error("Error al cargar productos:", error);
+  } catch {
     throw new Error("Error al cargar productos");
   }
 }
 
-export async function registrarProducto(data: ProductoFormData): Promise<Producto> {
+export async function registrarProducto(
+  data: ProductoFormData
+): Promise<Producto> {
   try {
     const formData = new FormData();
     formData.append("nomProd", data.nomProd);
@@ -31,14 +32,16 @@ export async function registrarProducto(data: ProductoFormData): Promise<Product
     return res.data;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error("Error al registrar producto:", error.message);
       throw new Error(error.message || "Error al registrar producto");
     }
     throw new Error("Error al registrar producto");
   }
 }
 
-export async function actualizarProducto(id: number, data: ProductoFormData): Promise<Producto> {
+export async function actualizarProducto(
+  id: number,
+  data: ProductoFormData
+): Promise<Producto> {
   try {
     const formData = new FormData();
     formData.append("nomProd", data.nomProd);
@@ -58,7 +61,6 @@ export async function actualizarProducto(id: number, data: ProductoFormData): Pr
     return res.data;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error("Error al actualizar producto:", error.message);
       throw new Error(error.message || "Error al actualizar producto");
     }
     throw new Error("Error al actualizar producto");
@@ -66,15 +68,48 @@ export async function actualizarProducto(id: number, data: ProductoFormData): Pr
 }
 
 // Eliminar producto
-export async function eliminarProducto(id: number): Promise<{ message: string }> {
+export type DeleteResult =
+  | { ok: true; data?: unknown }
+  | { ok: false; status?: number; message?: string; data?: unknown };
+
+export async function eliminarProducto(id: number): Promise<DeleteResult> {
   try {
-    const res = await api.delete<{ message: string }>(`/api/productos/${id}`);
-    return res.data;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error al eliminar producto:", error.message);
-      throw new Error(error.message || "Error al eliminar producto");
+    // Use Fetch API for DELETE to avoid browser console error stack traces
+    const url = `${baseURL}/api/productos/${id}`;
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const resp = await fetch(url, {
+      method: "DELETE",
+      headers,
+      credentials: "include",
+    });
+
+    const text = await resp.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : undefined;
+    } catch {
+      data = text;
     }
-    throw new Error("Error al eliminar producto");
+
+    if (resp.ok) {
+      return { ok: true, data };
+    }
+
+    // Non-ok status: return structured failure
+    const message =
+      typeof data === "string"
+        ? data
+        : typeof data === "object" && data
+        ? JSON.stringify(data)
+        : undefined;
+    return { ok: false, status: resp.status, message, data };
+  } catch (error: unknown) {
+    if (error instanceof Error) return { ok: false, message: error.message };
+    return { ok: false, message: "Error al eliminar producto" };
   }
 }

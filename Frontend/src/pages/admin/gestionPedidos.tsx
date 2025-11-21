@@ -8,17 +8,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
 import {
   obtenerTodosPedidos,
-  actualizarEstadoPedido,
   obtenerDetallesPedido,
 } from "@/services/ventas/pedidoService";
 import type { DetallePedidoItem } from "@/services/ventas/pedidoService";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 
 interface Pedido {
   idPed: number;
@@ -92,18 +85,6 @@ const GestionPedidos = () => {
     }
   };
 
-  const handleCambiarEstado = async (idPedido: number, nuevoEstado: string) => {
-    try {
-      await actualizarEstadoPedido(idPedido, nuevoEstado);
-      // Recargar pedidos
-      await cargarPedidos();
-      alert("Estado actualizado correctamente");
-    } catch (error) {
-      console.error("Error al actualizar estado:", error);
-      alert("Error al actualizar el estado del pedido");
-    }
-  };
-
   const columns: ColumnDef<Pedido>[] = [
     {
       accessorKey: "idPed",
@@ -138,6 +119,36 @@ const GestionPedidos = () => {
       },
     },
     {
+      id: "pago",
+      header: "Pago",
+      cell: ({ row }) => {
+        // derive payment status from localStorage map or fallback
+        try {
+          const raw = localStorage.getItem("pedidosPagoStatus");
+          const map = raw ? JSON.parse(raw) : {};
+          const idPed = (row.getValue("idPed") as number) || 0;
+          const estadoPed = row.getValue("estado") as Pedido["estado"];
+          let pago = map[idPed];
+          if (!pago) {
+            if (estadoPed === "Realizado") pago = "pagado";
+            else if (estadoPed === "Rechazado") pago = "devuelto";
+            else pago = "pendiente";
+          }
+          const color =
+            pago === "pagado"
+              ? "bg-green-100 text-green-700"
+              : pago === "devuelto"
+              ? "bg-red-100 text-red-700"
+              : "bg-yellow-100 text-yellow-700";
+          return <Badge className={color}>{pago}</Badge>;
+        } catch {
+          return (
+            <Badge className="bg-yellow-100 text-yellow-700">pendiente</Badge>
+          );
+        }
+      },
+    },
+    {
       accessorKey: "total",
       header: "Monto Total",
       cell: ({ row }) => {
@@ -155,21 +166,6 @@ const GestionPedidos = () => {
         const pedido = row.original;
         return (
           <div className="flex gap-2 items-center">
-            <Select
-              value={pedido.estado}
-              onValueChange={(value) =>
-                handleCambiarEstado(pedido.idPed, value)
-              }
-            >
-              <SelectTrigger className="w-[130px] text-xs">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nuevo">Nuevo</SelectItem>
-                <SelectItem value="Realizado">Realizado</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-              </SelectContent>
-            </Select>
             <Button
               variant="secondary"
               size="sm"

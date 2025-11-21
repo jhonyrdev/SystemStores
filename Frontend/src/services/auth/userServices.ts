@@ -13,7 +13,10 @@ interface User {
   correo: string;
 }
 
-export async function loginUsuario(email: string, password: string): Promise<LoginResponse> {
+export async function loginUsuario(
+  email: string,
+  password: string
+): Promise<LoginResponse> {
   try {
     const res = await api.post<LoginResponse>(
       "/api/usuarios/loginCliente",
@@ -22,6 +25,17 @@ export async function loginUsuario(email: string, password: string): Promise<Log
     );
     return res.data;
   } catch (error: unknown) {
+    type AxiosLikeError = Error & {
+      response?: { status?: number; data?: any };
+    };
+    const e = error as AxiosLikeError;
+    if (e.response?.data?.error) {
+      throw new Error(e.response.data.error);
+    }
+    if (e.response?.status === 401) {
+      // unauthorized = invalid credentials or not found
+      throw new Error("UNAUTHORIZED");
+    }
     if (error instanceof Error) {
       console.error("Error en login:", error.message);
       throw new Error(error.message || "Error en login");
@@ -30,9 +44,23 @@ export async function loginUsuario(email: string, password: string): Promise<Log
   }
 }
 
+export async function correoExiste(correo: string): Promise<boolean> {
+  try {
+    const res = await api.get<{ exists: boolean }>(
+      `/api/usuarios/exists?identificador=${encodeURIComponent(correo)}`
+    );
+    return !!res.data.exists;
+  } catch (error) {
+    console.error("Error checking correo exists:", error);
+    return false;
+  }
+}
+
 export async function getLoggedUser(): Promise<User> {
   try {
-    const res = await api.get<User>("/api/usuarios/me", { withCredentials: true });
+    const res = await api.get<User>("/api/usuarios/me", {
+      withCredentials: true,
+    });
     return res.data;
   } catch (error: unknown) {
     console.error("No hay usuario logueado:", error);
@@ -42,7 +70,9 @@ export async function getLoggedUser(): Promise<User> {
 
 export async function logoutUsuario(): Promise<void> {
   try {
-    await api.post("/api/usuarios/logout", undefined, { withCredentials: true });
+    await api.post("/api/usuarios/logout", undefined, {
+      withCredentials: true,
+    });
   } catch (error: unknown) {
     console.error("Error al cerrar sesión:", error);
     throw new Error("Error al cerrar sesión");
@@ -55,10 +85,11 @@ export async function registrarUsuario(
   password: string
 ): Promise<RegisterResponse> {
   try {
-    const res = await api.post<RegisterResponse>(
-      "/api/usuarios/register",
-      { nombre: name, correo: email, clave: password }
-    );
+    const res = await api.post<RegisterResponse>("/api/usuarios/register", {
+      nombre: name,
+      correo: email,
+      clave: password,
+    });
     return res.data;
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -69,7 +100,9 @@ export async function registrarUsuario(
   }
 }
 
-interface CambiarClaveResponse { message: string }
+interface CambiarClaveResponse {
+  message: string;
+}
 
 export async function cambiarClaveUsuario(
   claveActual: string,
@@ -84,21 +117,22 @@ export async function cambiarClaveUsuario(
     );
     return res.data;
   } catch (error: unknown) {
-    // AxiosError shape (parcial) para evitar any
     type AxiosLikeError = Error & { response?: { data?: { error?: string } } };
     const e = error as AxiosLikeError;
     if (e.response?.data?.error) {
       throw new Error(e.response.data.error);
     }
     if (e instanceof Error) {
-      throw new Error(e.message || 'Error al cambiar la contraseña');
+      throw new Error(e.message || "Error al cambiar la contraseña");
     }
-    throw new Error('Error al cambiar la contraseña');
+    throw new Error("Error al cambiar la contraseña");
   }
 }
 
 // Solicitar recuperación de contraseña
-export async function solicitarRecuperacionContrasena(email: string): Promise<{ message: string }> {
+export async function solicitarRecuperacionContrasena(
+  email: string
+): Promise<{ message: string }> {
   try {
     const res = await api.post<{ message: string }>(
       "/api/usuarios/forgot-password",
@@ -112,14 +146,19 @@ export async function solicitarRecuperacionContrasena(email: string): Promise<{ 
       throw new Error(e.response.data.error);
     }
     if (e instanceof Error) {
-      throw new Error(e.message || 'Error al solicitar recuperación de contraseña');
+      throw new Error(
+        e.message || "Error al solicitar recuperación de contraseña"
+      );
     }
-    throw new Error('Error al solicitar recuperación de contraseña');
+    throw new Error("Error al solicitar recuperación de contraseña");
   }
 }
 
 // Restablecer contraseña con token
-export async function restablecerContrasena(token: string, nuevaContrasena: string): Promise<{ message: string }> {
+export async function restablecerContrasena(
+  token: string,
+  nuevaContrasena: string
+): Promise<{ message: string }> {
   try {
     const res = await api.post<{ message: string }>(
       "/api/usuarios/reset-password",
@@ -133,8 +172,8 @@ export async function restablecerContrasena(token: string, nuevaContrasena: stri
       throw new Error(e.response.data.error);
     }
     if (e instanceof Error) {
-      throw new Error(e.message || 'Error al restablecer contraseña');
+      throw new Error(e.message || "Error al restablecer contraseña");
     }
-    throw new Error('Error al restablecer contraseña');
+    throw new Error("Error al restablecer contraseña");
   }
 }

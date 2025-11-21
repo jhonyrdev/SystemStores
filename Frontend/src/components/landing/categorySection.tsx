@@ -1,4 +1,3 @@
-
 const categories = [
   {
     name: "Cervezas",
@@ -34,6 +33,8 @@ const categories = [
   },
 ];
 
+import { Link } from "react-router-dom";
+
 const CategorySection = () => {
   return (
     <section className="my-10">
@@ -46,8 +47,9 @@ const CategorySection = () => {
         <div className="overflow-x-auto scrollbar-hide">
           <div className="flex gap-4 sm:gap-6 xs:gap-8 w-max mx-auto">
             {categories.map((category) => (
-              <div
+              <Link
                 key={category.name}
+                to={`/categoria/${category.name.toLowerCase()}`}
                 className="flex flex-col items-center flex-shrink-0 scroll-snap-align-start text-center w-[72px] sm:w-[80px]"
               >
                 <img
@@ -59,7 +61,7 @@ const CategorySection = () => {
                 <span className="mt-2 text-sm text-muted-foreground">
                   {category.name}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

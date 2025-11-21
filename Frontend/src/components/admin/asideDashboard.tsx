@@ -2,8 +2,8 @@ import { Home, Box, ShoppingCart, Users, ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
-import ConfirmModal from "@components/common/confirmModal";
-import { useConfirmModal } from "@/hooks/useconfirmModal";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 interface Props {
   onSelect: () => void;
@@ -38,7 +38,7 @@ const AsideDashboard: React.FC<Props> = () => {
   const [activeMenu, setActiveMenu] = useState<MenuLabel | null>(null);
 
   const navigate = useNavigate();
-  const { confirm, modalProps } = useConfirmModal();
+  // we'll use SweetAlert2 here for logout confirmation
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminAutenticado");
@@ -46,7 +46,24 @@ const AsideDashboard: React.FC<Props> = () => {
   };
 
   const handleLogoutClick = () => {
-    confirm("¿Estás seguro de que deseas cerrar sesión?", handleLogout);
+    Swal.fire({
+      title: "¿Deseas cerrar sesión?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#30d68eff",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, cerrar sesión",
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleLogout();
+        Swal.fire({
+          title: "Hecho",
+          text: "Sesión finalizada.",
+          icon: "success",
+        });
+      }
+    });
   };
 
   useEffect(() => {
@@ -129,7 +146,6 @@ const AsideDashboard: React.FC<Props> = () => {
             >
               Cerrar sesión
             </Button>
-            <ConfirmModal {...modalProps} />
           </div>
         </div>
       </aside>

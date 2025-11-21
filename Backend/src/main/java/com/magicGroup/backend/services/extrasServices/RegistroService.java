@@ -49,4 +49,22 @@ public class RegistroService {
 
         return clienteRepository.save(cliente);
     }
+
+    public boolean existsByCorreo(String correo) {
+        try {
+            return clienteRepository.findByCorreoCli(correo).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean existsByIdentificador(String identificador) {
+        try {
+            if (clienteRepository.findByCorreoCli(identificador).isPresent())
+                return true;
+            return credencialRepository.findByUsuario(identificador).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

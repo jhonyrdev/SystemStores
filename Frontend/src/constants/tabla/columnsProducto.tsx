@@ -12,7 +12,7 @@ export const columnsProducto: ColumnDef<Producto>[] = [
     header: "Stock",
     cell: ({ row }) => {
       const stock = row.getValue("stock") as number;
-      const categoria = (row.original as any).categoria?.toLowerCase();
+      const categoria = String(row.original.categoria ?? "").toLowerCase();
 
       const umbralCritico = categoria === "comidas" ? 2 : 5;
 
@@ -28,20 +28,20 @@ export const columnsProducto: ColumnDef<Producto>[] = [
   },
   {
     accessorKey: "estado",
-  header: "Estado",
-  cell: ({ row }) => {
-    const estado = row.getValue("estado") as string;
-    
-    const color = 
-      estado === "Inactivo"
-        ? "bg-yellow-100 text-yellow-700"
-        : estado === "Critico"
-        ? "bg-red-100 text-red-700"
-        : estado === "Disponible"
-        ? "bg-green-100 text-green-700"
-        : "bg-gray-100 text-gray-700";
-    
-    return <Badge className={color}>{estado}</Badge>;
+    header: "Estado",
+    cell: ({ row }) => {
+      const estado = row.getValue("estado") as string;
+
+      const color =
+        estado === "Inactivo"
+          ? "bg-yellow-100 text-yellow-700"
+          : estado === "Critico"
+          ? "bg-red-100 text-red-700"
+          : estado === "Disponible"
+          ? "bg-green-100 text-green-700"
+          : "bg-gray-100 text-gray-700";
+
+      return <Badge className={color}>{estado}</Badge>;
     },
   },
   {

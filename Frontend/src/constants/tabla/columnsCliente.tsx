@@ -13,20 +13,11 @@ export const columnsclientes: ColumnDef<Cliente>[] = [
       const value = row.getValue("estado") as Cliente["estado"];
       const color =
         value === "Activo"
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700";
+          ? "bg-green-100 text-green-700 text-center"
+          : "bg-red-100 text-red-700 text-center";
       return <Badge className={color}>{value}</Badge>;
     },
   },
   { accessorKey: "fechaRegistro", header: "Fecha de Registro" },
   { accessorKey: "gastoTotal", header: "Gasto Total" },
-  {
-    id: "accion",
-    header: "Acción",
-    cell: () => (
-      <span className="text-blue-600 hover:underline cursor-pointer">
-        Ver
-      </span>
-    ),
-  },
 ];

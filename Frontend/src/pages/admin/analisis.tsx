@@ -137,7 +137,7 @@ const Analisis: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Productos Más Populares (prototipo)</CardTitle>
+            <CardTitle>Productos Más Populares</CardTitle>
           </CardHeader>
           <CardContent>
             <table className="w-full text-sm">
@@ -161,7 +161,7 @@ const Analisis: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Categorías Más Populares (prototipo)</CardTitle>
+            <CardTitle>Categorías Más Populares</CardTitle>
           </CardHeader>
           <CardContent>
             <table className="w-full text-sm">

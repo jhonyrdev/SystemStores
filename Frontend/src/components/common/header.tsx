@@ -1,5 +1,6 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useCarrito } from "@/context/carritoContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@components/ui/separator";
@@ -22,19 +23,23 @@ const Header: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
+  const [formResetCounter, setFormResetCounter] = useState(0);
 
   const [categorias, setCategorias] = useState([]);
+
+  const location = useLocation();
+  const isClientPanel = location.pathname.startsWith("/cuenta");
 
   // Cerrar modal cuando se navega a forgot-password
   useEffect(() => {
     const handleCloseModal = () => {
       setModalOpen(false);
     };
-    
-    window.addEventListener('closeForgotPasswordModal', handleCloseModal);
-    
+
+    window.addEventListener("closeForgotPasswordModal", handleCloseModal);
+
     return () => {
-      window.removeEventListener('closeForgotPasswordModal', handleCloseModal);
+      window.removeEventListener("closeForgotPasswordModal", handleCloseModal);
     };
   }, []);
 
@@ -52,34 +57,119 @@ const Header: React.FC = () => {
   }, []);
 
   const [isCarritoOpen, setIsCarritoOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const { items } = useCarrito();
   const handleClick = () => {
     const usuarioGuardado = localStorage.getItem("usuario");
     if (usuarioGuardado) {
       navigate("/cuenta");
     } else {
+      // Always open the modal in the login view when clicking the user button
+      setIsLoginView(true);
+      setFormError(null);
+      setFormSuccess(null);
+      setFormResetCounter((c) => c + 1);
       setModalOpen(true);
     }
   };
 
-  const { login, register } = UserAuth({
+  const { login, register, isBlocked, blockedUntil } = UserAuth({
     onSuccess: () => {
-      toast.success("Acción Exitosa");
-      setModalOpen(false);
+      // keep minimal: clear any error; UI success handled in handleSubmit
+      setFormError(null);
     },
-    onError: (msg) =>
-      toast.error("Algo salió mal", {
-        description: msg,
-      }),
+    onError: (msg) => {
+      const text = msg || "Ocurrió un error";
+      const lowered = text.toLowerCase();
+      // if it's a block-related message, show it as form error
+      if (lowered.includes("bloque") || lowered.includes("demasiad")) {
+        setFormError(text);
+        return;
+      }
+
+      // map generic errors to short messages based on current view
+      if (isLoginView) {
+        // Improve error messages: detect 'not found' style errors
+        if (
+          lowered.includes("no encontr") ||
+          lowered.includes("not found") ||
+          lowered.includes("no existe") ||
+          lowered.includes("no se")
+        ) {
+          setFormError(
+            "Las credenciales ingresadas no existen. Regístrate ahora."
+          );
+        } else {
+          setFormError("Credenciales inválidas.");
+        }
+
+        // after a short delay, clear the error and reset login inputs
+        setTimeout(() => {
+          setFormError(null);
+          setFormResetCounter((c) => c + 1);
+        }, 2200);
+      } else {
+        setFormError("Datos faltante");
+      }
+    },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (data: Record<string, any>) => {
     try {
+      if (isLoginView && isBlocked) {
+        const remainingMs = blockedUntil
+          ? Math.max(0, blockedUntil - Date.now())
+          : 0;
+
+        const mins = Math.ceil(remainingMs / 60000);
+        setFormError(
+          `Formulario de login bloqueado temporalmente. Inténtalo en ${mins} minuto(s)`
+        );
+        return;
+      }
       const { name, email, password } = data;
       if (isLoginView) {
-        await login(email, password);
+        try {
+          await login(email, password);
+          // login successful -> close modal (no toast)
+          setFormError(null);
+          setModalOpen(false);
+        } catch {
+          // try to intelligently decide if email exists
+          try {
+            const { correoExiste } = await import(
+              "@/services/auth/userServices"
+            );
+            const exists = await correoExiste(email);
+            if (!exists) {
+              setFormError(
+                "Las credenciales ingresadas no existen. Regístrate ahora."
+              );
+            } else {
+              setFormError("Credenciales inválidas.");
+            }
+            // clear and reset inputs shortly after
+            setTimeout(() => {
+              setFormError(null);
+              setFormResetCounter((c) => c + 1);
+            }, 2200);
+          } catch {
+            setFormError("Credenciales inválidas.");
+          }
+          return;
+        }
       } else {
         await register(name, email, password);
+        // registration succeeded: show inline success message in the form
+        setFormSuccess("Registro exitoso");
+        // reset fields after a short delay and close modal
+        setTimeout(() => {
+          setFormSuccess(null);
+          setFormResetCounter((c) => c + 1);
+          setModalOpen(false);
+        }, 2200);
       }
     } catch {
       /* empty */
@@ -122,9 +212,16 @@ const Header: React.FC = () => {
         }
       >
         <DynamicForm
-          fields={isLoginView ? loginFields : registerFields}
+          fields={(isLoginView ? loginFields : registerFields).map((f) => ({
+            ...f,
+            disabled: (isLoginView && isBlocked) || !!f.disabled,
+          }))}
           submitLabel={isLoginView ? "Iniciar Sesión" : "Registrarse"}
           onSubmit={handleSubmit}
+          resetTrigger={formResetCounter}
+          formError={formError}
+          formSuccess={formSuccess}
+          formErrorPosition={isLoginView ? "top" : "bottom"}
           showPasswordStrength={!isLoginView}
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
@@ -139,7 +236,12 @@ const Header: React.FC = () => {
               ¿No tienes cuenta?{" "}
               <button
                 className="text-primary font-medium hover:underline"
-                onClick={() => setIsLoginView(false)}
+                onClick={() => {
+                  setIsLoginView(false);
+                  setFormError(null);
+                  setFormSuccess(null);
+                  setFormResetCounter((c) => c + 1);
+                }}
               >
                 Regístrate
               </button>
@@ -149,7 +251,12 @@ const Header: React.FC = () => {
               ¿Ya tienes cuenta?{" "}
               <button
                 className="text-primary font-medium hover:underline"
-                onClick={() => setIsLoginView(true)}
+                onClick={() => {
+                  setIsLoginView(true);
+                  setFormError(null);
+                  setFormSuccess(null);
+                  setFormResetCounter((c) => c + 1);
+                }}
               >
                 Inicia sesión
               </button>
@@ -186,15 +293,17 @@ const Header: React.FC = () => {
               />
             </Link>
 
-            {/* Menú Desktop */}
-            <ul className="hidden md:flex items-center space-x-6">
-              <li>
-                {/* Aquí quitamos el botón y mostramos el dropdown fijo */}
-                <div className="relative">
-                  <DropdownCateg categorias={categorias} />
-                </div>
-              </li>
-            </ul>
+            {/* Menú Desktop (solo en panel cliente) */}
+            {isClientPanel && (
+              <ul className="hidden md:flex items-center space-x-6">
+                <li>
+                  {/* Aquí quitamos el botón y mostramos el dropdown fijo */}
+                  <div className="relative">
+                    <DropdownCateg categorias={categorias} />
+                  </div>
+                </li>
+              </ul>
+            )}
 
             {/* Iconos */}
             <div className="flex items-center gap-4">
@@ -219,10 +328,15 @@ const Header: React.FC = () => {
               {/* Carrito */}
               <button
                 onClick={() => setIsCarritoOpen(true)}
-                className="text-primary hover:text-primary/80 cursor-pointer"
+                className="relative text-primary hover:text-primary/80 cursor-pointer"
                 aria-label="Abrir carrito"
               >
                 <ShoppingBag className="h-5 w-5" />
+                {items.length > 0 && (
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                    {items.length}
+                  </span>
+                )}
               </button>
 
               {/* Componente carrito aside */}
