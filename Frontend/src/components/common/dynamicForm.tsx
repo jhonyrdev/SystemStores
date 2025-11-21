@@ -50,7 +50,13 @@ interface DynamicFormProps {
   onOutlookLogin?: () => void;
   showSocialButtons?: boolean;
   formError?: string | null;
+  /** optional success message shown like formError but styled for success */
+  formSuccess?: string | null;
   showForgotPassword?: boolean;
+  // When this value changes the form will reset to `initialValues`
+  resetTrigger?: number;
+  /** where to display the form error: 'top' renders above the first input, 'bottom' renders above the submit button */
+  formErrorPosition?: "top" | "bottom";
 }
 
 const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -66,6 +72,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   showSocialButtons,
   formError,
   showForgotPassword = false,
+  resetTrigger,
+  formErrorPosition = "bottom",
+  formSuccess,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
@@ -79,6 +88,19 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
       setImagenPreview(null);
     }
   }, [initialValues]);
+
+  useEffect(() => {
+    if (typeof resetTrigger !== "undefined") {
+      setFormData(initialValues || {});
+      setPasswordStrength(0);
+      if (initialValues.imgProd) {
+        setImagenPreview(getProductoImgUrl(initialValues.imgProd));
+      } else {
+        setImagenPreview(null);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetTrigger]);
 
   const handleChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -125,6 +147,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
       {title && <h2 className="text-xl font-semibold text-center">{title}</h2>}
       <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] md:max-h-[70vh] w-full pr-2">
         <div className="space-y-5">
+          {formError && formErrorPosition === "top" && (
+            <div className="text-sm text-red-600 mb-2">{formError}</div>
+          )}
           {fields.reduce<JSX.Element[]>((acc, field, index, arr) => {
             // Agrupar marca + unidad
             if (field.name === "marca" && arr[index + 1]?.name === "unidad") {
@@ -382,8 +407,15 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
       </div>
 
       {/* Mensaje de error justo encima del botón (fuera del área con scroll) */}
-      {formError && (
+      {formError && formErrorPosition !== "top" && (
         <div className="text-sm text-red-600 text-center mb-2">{formError}</div>
+      )}
+
+      {/* Mensaje de éxito (solo para casos como 'Registro exitoso') */}
+      {formSuccess && (
+        <div className="text-sm text-green-600 text-center mb-2">
+          {formSuccess}
+        </div>
       )}
 
       {/* Botón fuera del scroll */}

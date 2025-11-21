@@ -8,9 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import PagoModal from "@/components/client/pagoModal";
-import PaymentFormModals from "@/components/client/paymentFormModals";
-import { listarDireccionesCliente } from "@/services/cliente/direccionService";
-import type { Direccion } from "@/types/direccion";
 import { registrarPedido } from "@/services/ventas/pedidoService";
 import type { PedidoRequest, PedidoResponse } from "@/types/ventas";
 
@@ -25,15 +22,11 @@ const Checkout = () => {
     } catch {
       return null;
     }
-  }, [usuario]);
+  }, []);
 
   const [metodoEnvio, setMetodoEnvio] = useState<"envio" | "recojo">("envio");
-  const [direccionSeleccionada, setDireccionSeleccionada] = useState("");
-  const [direcciones, setDirecciones] = useState<Direccion[]>([]);
-  const [cargandoDirecciones, setCargandoDirecciones] = useState(false);
-  const [metodoPago, setMetodoPago] = useState<number | null>(1);
+
   const [openPagoModal, setOpenPagoModal] = useState(false);
-  const [openPaymentForm, setOpenPaymentForm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">(
     "boleta"
   );
@@ -47,25 +40,8 @@ const Checkout = () => {
     0
   );
 
+  // Restaurar pedido pendiente (si el usuario recargó la página o cerró la pestaña)
   useEffect(() => {
-    // cargar direcciones del cliente si aplica
-    const cargarDirecciones = async () => {
-      try {
-        setCargandoDirecciones(true);
-        if (usuario?.idCliente) {
-          const data = await listarDireccionesCliente(usuario.idCliente);
-          setDirecciones(data as Direccion[]);
-        }
-      } catch (err) {
-        /* ignore */
-      } finally {
-        setCargandoDirecciones(false);
-      }
-    };
-
-    void cargarDirecciones();
-    // No se cargan direcciones automáticamente: envío es gratuito y no requiere asignar dirección
-    // Restaurar pedido pendiente (si el usuario recargó la página o cerró la pestaña)
     try {
       const stored = localStorage.getItem("pedidoRegistrado");
       if (stored) {
@@ -75,10 +51,8 @@ const Checkout = () => {
           const expiresAt = parsed.expiresAt as number | undefined;
           if (!expiresAt || expiresAt > Date.now()) {
             setPedidoRegistrado(parsed.pedido as PedidoResponse);
-            // mark detalles confirmed so UI shows summary
             setDetallesConfirmados(true);
           } else {
-            // expired
             try {
               localStorage.removeItem("pedidoRegistrado");
             } catch {
@@ -95,41 +69,49 @@ const Checkout = () => {
   }, []);
 
   const handleConfirmarDetalles = async () => {
-    // No requerimos dirección para el envío (gratuito)
-
-    if (items.length === 0) {
-      toast.warning("Tu carrito está vacío.");
-      return;
-    }
-
-    if (!usuario?.idCliente) {
-      toast.error("Error: Usuario no válido");
-      return;
-    }
     setDetallesConfirmados(true);
-    toast.success("Detalles confirmados. Puedes seguir añadiendo productos.");
   };
 
   const handleConfirmarPedido = async () => {
     if (!usuario) {
-      toast.error("Debes iniciar sesión para continuar.");
+      const res = await Swal.fire({
+        icon: "warning",
+        title: "Debes iniciar sesión para continuar",
+        showCancelButton: true,
+        confirmButtonText: "Ir a Login",
+        cancelButtonText: "Cerrar",
+      });
+      if (res.isConfirmed) {
+        window.location.href = "/login";
+      }
       return;
     }
 
-    if (items.length === 0) {
-      toast.warning("Tu carrito está vacío.");
-      return;
-    }
-
-    if (!detallesConfirmados) {
-      toast.error("Debes confirmar los detalles primero.");
-      return;
-    }
-
-    // If an order was already created, just open the payment modal.
     if (pedidoRegistrado) {
       setOpenPagoModal(true);
       return;
+    }
+
+    if (detallesConfirmados && !pedidoRegistrado) {
+      const choice = await Swal.fire({
+        icon: "question",
+        title: "¿Estás seguro?",
+        text: "Al proceder no podrás integrar más productos",
+        showDenyButton: true,
+        showCancelButton: false,
+        confirmButtonText: "Confirmar",
+        denyButtonText: "Ir a catálogo",
+      });
+
+      if (choice.isDenied) {
+        window.location.href = "/categoria";
+        return;
+      }
+
+      if (!choice.isConfirmed) {
+        // user cancelled or closed the dialog
+        return;
+      }
     }
 
     if (creatingPedido) return;
@@ -156,7 +138,6 @@ const Checkout = () => {
         const payload = { pedido: response, expiresAt };
         localStorage.setItem("pedidoRegistrado", JSON.stringify(payload));
 
-        // mark payment status as 'pendiente' for this pedido
         try {
           const mapRaw = localStorage.getItem("pedidosPagoStatus");
           const map = mapRaw ? JSON.parse(mapRaw) : {};
@@ -179,19 +160,14 @@ const Checkout = () => {
     }
   };
 
-  const handlePagoResultado = (exito: boolean, ventaId?: number) => {
+  const handlePagoResultado = async (exito: boolean, ventaId?: number) => {
     void ventaId;
     setCreatingPedido(false);
     setOpenPagoModal(false);
     if (exito) {
-      void Swal.fire({
-        icon: "success",
-        title: "Pago realizado",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      // The PagoModal already shows the success UI and navigates the user.
+      // Here we only update state/localStorage and clear the carrito.
       clearCarrito();
-      // mark pedido as paid in local map then remove stored pending pedido
       try {
         const stored = localStorage.getItem("pedidoRegistrado");
         const parsed = stored ? JSON.parse(stored) : null;
@@ -213,8 +189,8 @@ const Checkout = () => {
         /* ignore */
       }
       setDetallesConfirmados(false);
+      // Intentionally no Swal or redirect here; modal is the authoritative confirmation.
     } else {
-      // mark as cancelled and remove stored pending pedido
       try {
         const stored = localStorage.getItem("pedidoRegistrado");
         const parsed = stored ? JSON.parse(stored) : null;
@@ -239,19 +215,6 @@ const Checkout = () => {
         title: "Pago fallido",
         text: "El pago ha fallado o fue cancelado.",
       });
-    }
-  };
-
-  const getMetodoPagoTexto = (id: number): string => {
-    switch (id) {
-      case 1:
-        return "Yape";
-      case 2:
-        return "Plin";
-      case 3:
-        return "Tarjeta";
-      default:
-        return "Yape";
     }
   };
 
@@ -301,37 +264,9 @@ const Checkout = () => {
                         <Label htmlFor="recojo">Recojo en tienda</Label>
                       </div>
                     </RadioGroup>
-
-                    {/* Envío gratuito: no se solicita dirección */}
                   </div>
 
                   <Separator className="my-4" />
-
-                  <div>
-                    <Label className="font-semibold">Método de pago</Label>
-                    <RadioGroup
-                      value={metodoPago?.toString() || ""}
-                      onValueChange={(val) => {
-                        setMetodoPago(parseInt(val));
-                        setOpenPaymentForm(true);
-                      }}
-                      className="space-y-3 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="1" id="yape" />
-                        <Label htmlFor="yape">Yape</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="2" id="plin" />
-                        <Label htmlFor="plin">Plin</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="3" id="tarjeta" />
-                        <Label htmlFor="tarjeta">Tarjeta</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
                   <Button
                     className="w-full bg-secundario text-black font-bold mt-4"
                     onClick={handleConfirmarDetalles}
@@ -345,10 +280,6 @@ const Checkout = () => {
                   <p>
                     <strong>Método de envío:</strong>{" "}
                     {metodoEnvio === "envio" ? "Delivery" : "Recojo en tienda"}
-                  </p>
-                  <p>
-                    <strong>Método de pago:</strong>{" "}
-                    {getMetodoPagoTexto(metodoPago ?? 1)}
                   </p>
                 </div>
               )}
@@ -400,9 +331,7 @@ const Checkout = () => {
                       {detallesConfirmados
                         ? pedidoRegistrado
                           ? "Proceder al pago"
-                          : metodoPago === 1
-                          ? "Confirmar pedido"
-                          : "Proceder al pago"
+                          : "Confirmar pedido"
                         : "Confirma los detalles primero"}
                     </Button>
                     {pedidoRegistrado && (
@@ -429,10 +358,11 @@ const Checkout = () => {
                             }
                             setDetallesConfirmados(false);
                             setOpenPagoModal(false);
+                            // redirect to home after cancelling the order
+                            window.location.href = "/";
                           } catch (err) {
                             const msg =
                               err instanceof Error ? err.message : String(err);
-                            // show SweetAlert2 error with optional details
                             await Swal.fire({
                               icon: "error",
                               title: "No se pudo eliminar el pedido",
@@ -459,19 +389,11 @@ const Checkout = () => {
           tipoComprobante={tipoComprobante}
           setTipoComprobante={setTipoComprobante}
           pedidoRegistrado={pedidoRegistrado}
-          idMetodo={metodoPago ?? 1}
           totalVenta={total}
           detallesVenta={items}
           onResultado={handlePagoResultado}
         />
       )}
-
-      <PaymentFormModals
-        metodoPago={metodoPago}
-        open={openPaymentForm}
-        onOpenChange={setOpenPaymentForm}
-        onConfirm={() => setOpenPaymentForm(false)}
-      />
     </div>
   );
 };

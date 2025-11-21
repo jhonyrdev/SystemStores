@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import Swal from "sweetalert2";
 
 interface PaymentFormModalsProps {
   metodoPago: number | null;
@@ -34,8 +35,6 @@ const PaymentFormModals = ({
   const [cvv, setCvv] = useState("");
   const [tarjetaSuccess, setTarjetaSuccess] = useState(false);
 
-
-
   const handleYapeValidate = () => {
     if (!phoneYape.trim()) {
       alert("Por favor ingresa un número de teléfono");
@@ -47,7 +46,14 @@ const PaymentFormModals = ({
     }
     // Simular validación exitosa
     console.log("Yape payment validated:", { phone: phoneYape });
-    setYapeSuccess(true);
+    Swal.fire({
+      icon: "success",
+      title: "Método de pago validado correctamente",
+      timer: 1400,
+      showConfirmButton: false,
+    });
+    onConfirm();
+    handleClose();
   };
 
   const handlePlinValidate = () => {
@@ -60,11 +66,23 @@ const PaymentFormModals = ({
       return;
     }
     console.log("Plin payment validated:", { phone: phonePlin });
-    setPlinSuccess(true);
+    Swal.fire({
+      icon: "success",
+      title: "Método de pago validado correctamente",
+      timer: 1400,
+      showConfirmButton: false,
+    });
+    onConfirm();
+    handleClose();
   };
 
   const handleTarjetaValidate = () => {
-    if (!cardNumber.trim() || !cardHolder.trim() || !expiryDate.trim() || !cvv.trim()) {
+    if (
+      !cardNumber.trim() ||
+      !cardHolder.trim() ||
+      !expiryDate.trim() ||
+      !cvv.trim()
+    ) {
       alert("Por favor completa todos los campos");
       return;
     }
@@ -81,7 +99,14 @@ const PaymentFormModals = ({
       cardHolder,
       expiryDate,
     });
-    setTarjetaSuccess(true);
+    Swal.fire({
+      icon: "success",
+      title: "Método de pago validado correctamente",
+      timer: 1400,
+      showConfirmButton: false,
+    });
+    onConfirm();
+    handleClose();
   };
 
   const handleClose = () => {
@@ -135,7 +160,9 @@ const PaymentFormModals = ({
                       <div className="flex items-center gap-3">
                         <div className="text-4xl">📱</div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Método de pago</p>
+                          <p className="text-sm text-muted-foreground">
+                            Método de pago
+                          </p>
                           <p className="font-semibold text-lg">Yape</p>
                         </div>
                       </div>
@@ -148,7 +175,8 @@ const PaymentFormModals = ({
                       alt="QR Yape"
                       className="w-40 h-40 object-contain"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        (e.currentTarget as HTMLImageElement).style.display =
+                          "none";
                       }}
                     />
                     <p className="text-xs text-muted-foreground text-center">
@@ -162,14 +190,23 @@ const PaymentFormModals = ({
                       id="yape-phone"
                       placeholder="Ej: 987654321"
                       value={phoneYape}
-                      onChange={(e) => setPhoneYape(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      onChange={(e) =>
+                        setPhoneYape(
+                          e.target.value.replace(/\D/g, "").slice(0, 9)
+                        )
+                      }
                       maxLength={9}
                     />
-                    <p className="text-xs text-muted-foreground">Ingresa tu número de 9 dígitos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ingresa tu número de 9 dígitos
+                    </p>
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-900">ℹ️ Recibirás una notificación en tu app Yape para confirmar el pago</p>
+                    <p className="text-xs text-blue-900">
+                      ℹ️ Recibirás una notificación en tu app Yape para
+                      confirmar el pago
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
@@ -179,7 +216,11 @@ const PaymentFormModals = ({
                     >
                       Validar
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={handleClose}>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleClose}
+                    >
                       Cancelar
                     </Button>
                   </div>
@@ -222,7 +263,9 @@ const PaymentFormModals = ({
                       <div className="flex items-center gap-3">
                         <div className="text-4xl">💜</div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Método de pago</p>
+                          <p className="text-sm text-muted-foreground">
+                            Método de pago
+                          </p>
                           <p className="font-semibold text-lg">Plin</p>
                         </div>
                       </div>
@@ -235,7 +278,8 @@ const PaymentFormModals = ({
                       alt="QR Plin"
                       className="w-40 h-40 object-contain"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        (e.currentTarget as HTMLImageElement).style.display =
+                          "none";
                       }}
                     />
                     <p className="text-xs text-muted-foreground text-center">
@@ -249,14 +293,23 @@ const PaymentFormModals = ({
                       id="plin-phone"
                       placeholder="Ej: 987654321"
                       value={phonePlin}
-                      onChange={(e) => setPhonePlin(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      onChange={(e) =>
+                        setPhonePlin(
+                          e.target.value.replace(/\D/g, "").slice(0, 9)
+                        )
+                      }
                       maxLength={9}
                     />
-                    <p className="text-xs text-muted-foreground">Ingresa tu número de 9 dígitos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ingresa tu número de 9 dígitos
+                    </p>
                   </div>
 
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <p className="text-xs text-purple-900">ℹ️ Recibirás una notificación en tu app Plin para confirmar el pago</p>
+                    <p className="text-xs text-purple-900">
+                      ℹ️ Recibirás una notificación en tu app Plin para
+                      confirmar el pago
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
@@ -266,7 +319,11 @@ const PaymentFormModals = ({
                     >
                       Validar
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={handleClose}>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleClose}
+                    >
                       Cancelar
                     </Button>
                   </div>
@@ -309,7 +366,9 @@ const PaymentFormModals = ({
                       <div className="flex items-center gap-3">
                         <div className="text-4xl">💳</div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Método de pago</p>
+                          <p className="text-sm text-muted-foreground">
+                            Método de pago
+                          </p>
                           <p className="font-semibold text-lg">Tarjeta</p>
                         </div>
                       </div>
@@ -325,16 +384,22 @@ const PaymentFormModals = ({
                       onChange={(e) => handleCardNumberChange(e.target.value)}
                       maxLength={19}
                     />
-                    <p className="text-xs text-muted-foreground">16 dígitos sin espacios</p>
+                    <p className="text-xs text-muted-foreground">
+                      16 dígitos sin espacios
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="card-holder">Titular de la tarjeta. *</Label>
+                    <Label htmlFor="card-holder">
+                      Titular de la tarjeta. *
+                    </Label>
                     <Input
                       id="card-holder"
                       placeholder="Ej: JUAN PEREZ"
                       value={cardHolder}
-                      onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setCardHolder(e.target.value.toUpperCase())
+                      }
                     />
                   </div>
 
@@ -363,7 +428,9 @@ const PaymentFormModals = ({
                   </div>
 
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-xs text-amber-900">ℹ️ Tu información es segura y encriptada</p>
+                    <p className="text-xs text-amber-900">
+                      ℹ️ Tu información es segura y encriptada
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
@@ -373,7 +440,11 @@ const PaymentFormModals = ({
                     >
                       Validar
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={handleClose}>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleClose}
+                    >
                       Cancelar
                     </Button>
                   </div>

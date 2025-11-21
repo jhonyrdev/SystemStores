@@ -26,4 +26,14 @@ public class registroController {
         Cliente nuevo = registroService.registrarCliente(nombre, correo, clave);
         return ResponseEntity.ok(nuevo);
     }
+
+    @GetMapping("/exists")
+    public ResponseEntity<?> existeIdentificador(@RequestParam("identificador") String identificador) {
+        try {
+            boolean exists = registroService.existsByIdentificador(identificador);
+            return ResponseEntity.ok(Map.of("exists", exists));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error checking identificador"));
+        }
+    }
 }

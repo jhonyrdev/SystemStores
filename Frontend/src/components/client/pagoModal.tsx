@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import type {
   DetalleVenta,
 } from "@/types/ventas";
 import type { CarritoItem } from "@/context/carritoContext";
+import PaymentFormModals from "@/components/client/paymentFormModals";
 import { toast } from "sonner";
 
 interface PagoModalProps {
@@ -27,7 +29,6 @@ interface PagoModalProps {
     React.SetStateAction<"boleta" | "factura">
   >;
   pedidoRegistrado: PedidoResponse;
-  idMetodo: number;
   totalVenta: number;
   detallesVenta: CarritoItem[];
   onResultado: (exito: boolean, ventaId?: number) => void;
@@ -39,7 +40,6 @@ const PagoModal = ({
   tipoComprobante,
   setTipoComprobante,
   pedidoRegistrado,
-  idMetodo,
   totalVenta,
   detallesVenta,
   onResultado,
@@ -62,6 +62,12 @@ const PagoModal = ({
   const [razonSocial, setRazonSocial] = useState("");
   const [ventaId, setVentaId] = useState<number | null>(null);
   const [codigoComprobante, setCodigoComprobante] = useState("");
+  const [metodoSeleccionado, setMetodoSeleccionado] = useState<number | null>(
+    null
+  );
+  const [openPaymentForm, setOpenPaymentForm] = useState(false);
+  const [metodoValidado, setMetodoValidado] = useState(false);
+  const navigate = useNavigate();
 
   const generarCodigoComprobante = (): string => {
     const prefijo = tipoComprobante === "boleta" ? "B001" : "F001";
@@ -72,6 +78,11 @@ const PagoModal = ({
   const handleSimularPago = async () => {
     if (!usuario?.idCliente) {
       toast.error("Error: Usuario no válido");
+      return;
+    }
+
+    if (metodoSeleccionado === null) {
+      toast.warning("Selecciona un método de pago");
       return;
     }
 
@@ -107,7 +118,7 @@ const PagoModal = ({
         const ventaData: VentaRequest = {
           id_cli: usuario.idCliente,
           id_ped: pedidoRegistrado.id_ped,
-          id_metodo: idMetodo,
+          id_metodo: metodoSeleccionado ?? 1,
           total: totalVenta,
           tipo: tipoComprobante,
           codigo: codigo,
@@ -123,15 +134,8 @@ const PagoModal = ({
         setVentaId(response.id_venta);
         setMensaje("Pago realizado exitosamente");
         setProcesando(false);
+        setMetodoValidado(false);
 
-        toast.success("Venta registrada", {
-          description: `Venta #${
-            response.id_venta
-          } - ${tipoComprobante.toUpperCase()} ${codigo}`,
-        });
-
-        // Notify parent so it can clear carrito and reset UI
-        onResultado(true, response.id_venta);
       } else {
         setMensaje("Pago rechazado");
         toast.error("El pago no pudo ser procesado");
@@ -150,7 +154,6 @@ const PagoModal = ({
 
   const handleCerrar = async () => {
     if (!pagoRealizado) {
-      // cancelar el pedido registrado si existe
       try {
         if (pedidoRegistrado?.id_ped) {
           await cancelarPedido(pedidoRegistrado.id_ped);
@@ -159,6 +162,22 @@ const PagoModal = ({
         console.warn("Error cancelando pedido al cerrar modal:", err);
       }
       onResultado(false);
+      // reset and close
+      setPagoRealizado(false);
+      setProcesando(false);
+      setMensaje("");
+      setRuc("");
+      setRazonSocial("");
+      setVentaId(null);
+      setCodigoComprobante("");
+      setMetodoValidado(false);
+      onOpenChange(false);
+      return;
+    }
+    try {
+      onResultado(true, ventaId ?? undefined);
+    } catch (err) {
+      console.warn("Error notifying parent about successful payment:", err);
     }
 
     setPagoRealizado(false);
@@ -168,7 +187,15 @@ const PagoModal = ({
     setRazonSocial("");
     setVentaId(null);
     setCodigoComprobante("");
+    setMetodoValidado(false);
     onOpenChange(false);
+
+    try {
+      navigate("/cuenta/pedido");
+    } catch (error) {
+      console.warn("Navigate failed, falling back to full redirect:", error);
+      window.location.href = "/cuenta";
+    }
   };
 
   const handleTipoComprobanteChange = (value: string) => {
@@ -223,6 +250,32 @@ const PagoModal = ({
               </RadioGroup>
             </div>
 
+            <div className="mt-4">
+              <Label className="font-semibold">Método de pago</Label>
+              <RadioGroup
+                value={metodoSeleccionado?.toString() || ""}
+                onValueChange={(val) => {
+                  setMetodoSeleccionado(parseInt(val));
+                  setMetodoValidado(false);
+                  setOpenPaymentForm(true);
+                }}
+                className="mt-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="1" id="yape-modal" />
+                  <Label htmlFor="yape-modal">Yape</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="2" id="plin-modal" />
+                  <Label htmlFor="plin-modal">Plin</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="3" id="tarjeta-modal" />
+                  <Label htmlFor="tarjeta-modal">Tarjeta</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             {tipoComprobante === "factura" && (
               <div className="space-y-3 border-t pt-3">
                 <div>
@@ -253,8 +306,9 @@ const PagoModal = ({
             <Button
               className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
               onClick={handleSimularPago}
+              disabled={!metodoValidado || procesando}
             >
-              Simular pago
+              Realizar Pago
             </Button>
 
             <Button variant="outline" className="w-full" onClick={handleCerrar}>
@@ -318,6 +372,16 @@ const PagoModal = ({
             </Button>
           </div>
         )}
+        <PaymentFormModals
+          metodoPago={metodoSeleccionado}
+          open={openPaymentForm}
+          onOpenChange={setOpenPaymentForm}
+          onConfirm={() => {
+            // mark as validated and close payment form
+            setMetodoValidado(true);
+            setOpenPaymentForm(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -117,10 +117,10 @@ const UserAuth = ({ onSuccess, onError }: UserAuthOptions = {}) => {
           const now = Date.now();
           const attempts = (cur.attempts || 0) + 1;
           if (attempts >= 3) {
-            const blockedUntilTs = now + 60 * 60 * 1000; // 1 hour
+            const blockedUntilTs = now + 3 * 60 * 1000; // 3min
             writeInfo({ attempts: 0, blockedUntil: blockedUntilTs });
             onError?.(
-              "Demasiados intentos. La cuenta se ha bloqueado temporalmente por 1 hora."
+              "Demasiados intentos. La cuenta se ha bloqueado temporalmente por 3minutos."
             );
           } else {
             writeInfo({ attempts, blockedUntil: null });

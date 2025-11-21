@@ -23,6 +23,7 @@ const Header: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
+  const [formResetCounter, setFormResetCounter] = useState(0);
 
   const [categorias, setCategorias] = useState([]);
 
@@ -57,22 +58,26 @@ const Header: React.FC = () => {
 
   const [isCarritoOpen, setIsCarritoOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const { items } = useCarrito();
   const handleClick = () => {
     const usuarioGuardado = localStorage.getItem("usuario");
     if (usuarioGuardado) {
       navigate("/cuenta");
     } else {
+      // Always open the modal in the login view when clicking the user button
+      setIsLoginView(true);
       setFormError(null);
+      setFormSuccess(null);
+      setFormResetCounter((c) => c + 1);
       setModalOpen(true);
     }
   };
 
   const { login, register, isBlocked, blockedUntil } = UserAuth({
     onSuccess: () => {
-      toast.success("Acción Exitosa");
+      // keep minimal: clear any error; UI success handled in handleSubmit
       setFormError(null);
-      setModalOpen(false);
     },
     onError: (msg) => {
       const text = msg || "Ocurrió un error";
@@ -85,7 +90,25 @@ const Header: React.FC = () => {
 
       // map generic errors to short messages based on current view
       if (isLoginView) {
-        setFormError("Error de credencial");
+        // Improve error messages: detect 'not found' style errors
+        if (
+          lowered.includes("no encontr") ||
+          lowered.includes("not found") ||
+          lowered.includes("no existe") ||
+          lowered.includes("no se")
+        ) {
+          setFormError(
+            "Las credenciales ingresadas no existen. Regístrate ahora."
+          );
+        } else {
+          setFormError("Credenciales inválidas.");
+        }
+
+        // after a short delay, clear the error and reset login inputs
+        setTimeout(() => {
+          setFormError(null);
+          setFormResetCounter((c) => c + 1);
+        }, 2200);
       } else {
         setFormError("Datos faltante");
       }
@@ -95,10 +118,11 @@ const Header: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (data: Record<string, any>) => {
     try {
-      if (isBlocked) {
+      if (isLoginView && isBlocked) {
         const remainingMs = blockedUntil
           ? Math.max(0, blockedUntil - Date.now())
           : 0;
+
         const mins = Math.ceil(remainingMs / 60000);
         setFormError(
           `Formulario de login bloqueado temporalmente. Inténtalo en ${mins} minuto(s)`
@@ -107,9 +131,45 @@ const Header: React.FC = () => {
       }
       const { name, email, password } = data;
       if (isLoginView) {
-        await login(email, password);
+        try {
+          await login(email, password);
+          // login successful -> close modal (no toast)
+          setFormError(null);
+          setModalOpen(false);
+        } catch {
+          // try to intelligently decide if email exists
+          try {
+            const { correoExiste } = await import(
+              "@/services/auth/userServices"
+            );
+            const exists = await correoExiste(email);
+            if (!exists) {
+              setFormError(
+                "Las credenciales ingresadas no existen. Regístrate ahora."
+              );
+            } else {
+              setFormError("Credenciales inválidas.");
+            }
+            // clear and reset inputs shortly after
+            setTimeout(() => {
+              setFormError(null);
+              setFormResetCounter((c) => c + 1);
+            }, 2200);
+          } catch {
+            setFormError("Credenciales inválidas.");
+          }
+          return;
+        }
       } else {
         await register(name, email, password);
+        // registration succeeded: show inline success message in the form
+        setFormSuccess("Registro exitoso");
+        // reset fields after a short delay and close modal
+        setTimeout(() => {
+          setFormSuccess(null);
+          setFormResetCounter((c) => c + 1);
+          setModalOpen(false);
+        }, 2200);
       }
     } catch {
       /* empty */
@@ -158,7 +218,10 @@ const Header: React.FC = () => {
           }))}
           submitLabel={isLoginView ? "Iniciar Sesión" : "Registrarse"}
           onSubmit={handleSubmit}
+          resetTrigger={formResetCounter}
           formError={formError}
+          formSuccess={formSuccess}
+          formErrorPosition={isLoginView ? "top" : "bottom"}
           showPasswordStrength={!isLoginView}
           onGoogleLogin={handleGoogleLogin}
           onOutlookLogin={handleOutlookLogin}
@@ -176,6 +239,8 @@ const Header: React.FC = () => {
                 onClick={() => {
                   setIsLoginView(false);
                   setFormError(null);
+                  setFormSuccess(null);
+                  setFormResetCounter((c) => c + 1);
                 }}
               >
                 Regístrate
@@ -189,6 +254,8 @@ const Header: React.FC = () => {
                 onClick={() => {
                   setIsLoginView(true);
                   setFormError(null);
+                  setFormSuccess(null);
+                  setFormResetCounter((c) => c + 1);
                 }}
               >
                 Inicia sesión

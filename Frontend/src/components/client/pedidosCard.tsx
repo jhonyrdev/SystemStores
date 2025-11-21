@@ -38,72 +38,7 @@ const PedidosCard = () => {
   const pageSize = 5;
 
   useEffect(() => {
-    const cargarPedidos = async () => {
-      try {
-        setLoading(true);
-        const storedUser = localStorage.getItem("usuario");
-        if (!storedUser) {
-          setError("Usuario no autenticado");
-          setLoading(false);
-          return;
-        }
-
-        const usuario: Usuario = JSON.parse(storedUser);
-        const clienteId = usuario.idCliente || usuario.idCli;
-
-        if (!clienteId) {
-          setError("No se encontró el ID del cliente");
-          setLoading(false);
-          return;
-        }
-        const pedidos = await obtenerPedidosPorCliente(clienteId);
-        const normalizePedido = (p: unknown): Pedido => {
-          const obj = p as Record<string, unknown>;
-          const idPed = (obj["idPed"] ??
-            obj["id_ped"] ??
-            obj["id_pedido"] ??
-            obj["id"]) as number | undefined;
-          const totalRaw = obj["total"];
-          const totalNum =
-            typeof totalRaw === "string"
-              ? Number(totalRaw)
-              : (totalRaw as number | undefined);
-          const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
-            | string
-            | undefined;
-          const estadoStr =
-            (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
-
-          return {
-            idPed: idPed ?? 0,
-            fecha:
-              typeof fechaStr === "string" ? fechaStr : String(fechaStr ?? ""),
-            total: Number.isFinite(totalNum ?? NaN) ? (totalNum as number) : 0,
-            estado: estadoStr,
-          };
-        };
-
-        const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
-
-        const activos = pedidosNormalizados.filter((p) => p.estado === "Nuevo");
-
-        const historial = pedidosNormalizados.filter(
-          (p) => p.estado === "Realizado" || p.estado === "Rechazado"
-        );
-
-        setPedidosActivos(activos);
-        setHistorialPedidos(historial);
-        setError(null);
-      } catch (err) {
-        console.error("Error al cargar pedidos:", err);
-        setError("Error al cargar los pedidos. Por favor intenta de nuevo.");
-        setPedidosActivos([]);
-        setHistorialPedidos([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    // initial load
     cargarPedidos();
   }, []);
 
@@ -136,68 +71,78 @@ const PedidosCard = () => {
     }
   };
 
-  const handleCancelarPedido = async (id: number) => {
-    if (!window.confirm("¿Estás seguro de que deseas cancelar este pedido?")) {
-      return;
-    }
+  // Extracted loader so it can be called from UI actions to refresh lists
+  const cargarPedidos = async () => {
     try {
-      await cancelarPedido(id);
-
-      // mark payment status as returned (devuelto) locally
-      markPaymentStatus(id, "devuelto");
-
-      setPedidosActivos((prev) => prev.filter((p) => p.idPed !== id));
+      setLoading(true);
       const storedUser = localStorage.getItem("usuario");
-      if (storedUser) {
-        const usuario: Usuario = JSON.parse(storedUser);
-        const clienteId = usuario.idCliente || usuario.idCli;
-        if (clienteId) {
-          const pedidos = await obtenerPedidosPorCliente(clienteId);
-          const normalizePedido = (p: unknown): Pedido => {
-            const obj = p as Record<string, unknown>;
-            const idPed = (obj["idPed"] ??
-              obj["id_ped"] ??
-              obj["id_pedido"] ??
-              obj["id"]) as number | undefined;
-            const totalRaw = obj["total"];
-            const totalNum =
-              typeof totalRaw === "string"
-                ? Number(totalRaw)
-                : (totalRaw as number | undefined);
-            const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
-              | string
-              | undefined;
-            const estadoStr =
-              (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
-
-            return {
-              idPed: idPed ?? 0,
-              fecha:
-                typeof fechaStr === "string"
-                  ? fechaStr
-                  : String(fechaStr ?? ""),
-              total: Number.isFinite(totalNum ?? NaN)
-                ? (totalNum as number)
-                : 0,
-              estado: estadoStr,
-            };
-          };
-
-          const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
-          const activos = pedidosNormalizados.filter(
-            (p) => p.estado === "Nuevo"
-          );
-
-          const historial = pedidosNormalizados.filter(
-            (p) => p.estado === "Realizado" || p.estado === "Rechazado"
-          );
-
-          setPedidosActivos(activos);
-          setHistorialPedidos(historial);
-        }
+      if (!storedUser) {
+        setError("Usuario no autenticado");
+        setLoading(false);
+        return;
       }
 
-      alert("Pedido cancelado correctamente");
+      const usuario: Usuario = JSON.parse(storedUser);
+      const clienteId = usuario.idCliente || usuario.idCli;
+
+      if (!clienteId) {
+        setError("No se encontró el ID del cliente");
+        setLoading(false);
+        return;
+      }
+      const pedidos = await obtenerPedidosPorCliente(clienteId);
+      const normalizePedido = (p: unknown): Pedido => {
+        const obj = p as Record<string, unknown>;
+        const idPed = (obj["idPed"] ??
+          obj["id_ped"] ??
+          obj["id_pedido"] ??
+          obj["id"]) as number | undefined;
+        const totalRaw = obj["total"];
+        const totalNum =
+          typeof totalRaw === "string"
+            ? Number(totalRaw)
+            : (totalRaw as number | undefined);
+        const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
+          | string
+          | undefined;
+        const estadoStr =
+          (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
+
+        return {
+          idPed: idPed ?? 0,
+          fecha:
+            typeof fechaStr === "string" ? fechaStr : String(fechaStr ?? ""),
+          total: Number.isFinite(totalNum ?? NaN) ? (totalNum as number) : 0,
+          estado: estadoStr,
+        };
+      };
+
+      const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
+
+      const activos = pedidosNormalizados.filter((p) => p.estado === "Nuevo");
+
+      const historial = pedidosNormalizados.filter(
+        (p) => p.estado === "Realizado" || p.estado === "Rechazado"
+      );
+
+      setPedidosActivos(activos);
+      setHistorialPedidos(historial);
+      setError(null);
+    } catch (err) {
+      console.error("Error al cargar pedidos:", err);
+      setError("Error al cargar los pedidos. Por favor intenta de nuevo.");
+      setPedidosActivos([]);
+      setHistorialPedidos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelarPedido = async (id: number) => {
+    try {
+      await cancelarPedido(id);
+      markPaymentStatus(id, "devuelto");
+      await cargarPedidos();
     } catch (err) {
       console.error("Error al cancelar pedido:", err);
       alert("Error al cancelar el pedido. Por favor intenta de nuevo.");
@@ -208,50 +153,8 @@ const PedidosCard = () => {
     try {
       // update on backend to Realizado
       await actualizarEstadoPedido(id, "Realizado");
-      // refresh list
-      const storedUser = localStorage.getItem("usuario");
-      if (storedUser) {
-        const usuario: Usuario = JSON.parse(storedUser);
-        const clienteId = usuario.idCliente || usuario.idCli;
-        if (clienteId) {
-          const pedidos = await obtenerPedidosPorCliente(clienteId);
-          const normalizePedido = (p: unknown): Pedido => {
-            const obj = p as Record<string, unknown>;
-            const idPed = (obj["idPed"] ??
-              obj["id_ped"] ??
-              obj["id_pedido"] ??
-              obj["id"]) as number | undefined;
-            const totalRaw = obj["total"];
-            const totalNum =
-              typeof totalRaw === "string"
-                ? Number(totalRaw)
-                : (totalRaw as number | undefined);
-            const fechaStr = (obj["fecha"] ?? obj["fechaPedido"]) as
-              | string
-              | undefined;
-            const estadoStr =
-              (obj["estado"] as "Nuevo" | "Realizado" | "Rechazado") ?? "Nuevo";
-
-            return {
-              idPed: idPed ?? 0,
-              fecha:
-                typeof fechaStr === "string"
-                  ? fechaStr
-                  : String(fechaStr ?? ""),
-              total: Number.isFinite(totalNum ?? NaN)
-                ? (totalNum as number)
-                : 0,
-              estado: estadoStr,
-            };
-          };
-
-          const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
-          const activos = pedidosNormalizados.filter(
-            (p) => p.estado === "Nuevo"
-          );
-          setPedidosActivos(activos);
-        }
-      }
+      // Refresh lists so historial updates automatically
+      await cargarPedidos();
     } catch (err) {
       console.error("Error marcando pedido como entregado:", err);
       alert("No se pudo marcar como entregado");
@@ -307,7 +210,13 @@ const PedidosCard = () => {
 
         <Button
           size="sm"
-          onClick={() => setVerHistorial(!verHistorial)}
+          onClick={async () => {
+            const next = !verHistorial;
+            setVerHistorial(next);
+            if (next) {
+              await cargarPedidos();
+            }
+          }}
           className="flex items-center gap-1 bg-secundario text-black"
         >
           <Eye className="w-4 h-4" />

@@ -8,17 +8,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
 import {
   obtenerTodosPedidos,
-  actualizarEstadoPedido,
   obtenerDetallesPedido,
 } from "@/services/ventas/pedidoService";
 import type { DetallePedidoItem } from "@/services/ventas/pedidoService";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 
 interface Pedido {
   idPed: number;
@@ -89,18 +82,6 @@ const GestionPedidos = () => {
       alert("Error al cargar los pedidos");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCambiarEstado = async (idPedido: number, nuevoEstado: string) => {
-    try {
-      await actualizarEstadoPedido(idPedido, nuevoEstado);
-      // Recargar pedidos
-      await cargarPedidos();
-      alert("Estado actualizado correctamente");
-    } catch (error) {
-      console.error("Error al actualizar estado:", error);
-      alert("Error al actualizar el estado del pedido");
     }
   };
 
@@ -185,21 +166,6 @@ const GestionPedidos = () => {
         const pedido = row.original;
         return (
           <div className="flex gap-2 items-center">
-            <Select
-              value={pedido.estado}
-              onValueChange={(value) =>
-                handleCambiarEstado(pedido.idPed, value)
-              }
-            >
-              <SelectTrigger className="w-[130px] text-xs">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nuevo">Nuevo</SelectItem>
-                <SelectItem value="Realizado">Realizado</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-              </SelectContent>
-            </Select>
             <Button
               variant="secondary"
               size="sm"

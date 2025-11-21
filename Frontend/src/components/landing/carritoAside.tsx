@@ -129,7 +129,6 @@ const CarritoAside = ({
         clearInterval(id);
         setTimeLeft(0);
         setExpiresAt(null);
-        // attempt to cancel on server if we have an id
         (async () => {
           try {
             const stored = localStorage.getItem("pedidoRegistrado");
@@ -142,7 +141,6 @@ const CarritoAside = ({
                     "@/services/ventas/pedidoService"
                   );
                   await cancelarPedido(pid);
-                  // mark payment as returned
                   try {
                     const mapRaw = localStorage.getItem("pedidosPagoStatus");
                     const map = mapRaw ? JSON.parse(mapRaw) : {};
@@ -155,7 +153,6 @@ const CarritoAside = ({
                     /* ignore */
                   }
                 } catch (err) {
-                  // server cancel failed — we'll still remove local state and inform user
                   console.warn("No se pudo cancelar pedido en servidor:", err);
                 }
               }
