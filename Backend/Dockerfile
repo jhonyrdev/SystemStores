@@ -17,4 +17,5 @@ EXPOSE 8080
 
 ENV SPRING_PROFILES_ACTIVE=cloud
 
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
