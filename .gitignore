@@ -1,5 +1,4 @@
 Backend/src/main/resources/application.properties
 Frontend/.env
 uploads/productos
-Backend/src/main/resources/application-cloud.properties
 Backend/src/main/resources/application-local.properties
