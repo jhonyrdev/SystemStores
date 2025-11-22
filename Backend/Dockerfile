@@ -9,9 +9,10 @@ COPY .mvn .mvn
 
 RUN chmod +x mvnw
 RUN ./mvnw -q -DskipTests package
-
 RUN cp target/*.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV SPRING_PROFILES_ACTIVE=cloud
+
+ENTRYPOINT ["java","-jar","app.jar"]
