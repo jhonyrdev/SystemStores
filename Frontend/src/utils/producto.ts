@@ -1,7 +1,9 @@
 import type { Producto } from "@/types/product";
+import { baseURL } from "@/services/api/axiosInstance";
 
 export function getProductoImgUrl(producto: Producto): string {
+  const apiBase = baseURL.replace(/\/$/, "");
   return producto.imgProd
-    ? `http://localhost:8080/uploads/productos/${producto.imgProd}`
+    ? `${apiBase}/uploads/productos/${producto.imgProd}`
     : "/img/placeholder.webp";
 }

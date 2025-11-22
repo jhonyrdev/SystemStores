@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useCallback } from "react";
 import { loginUsuario, registrarUsuario } from "@/services/auth/userServices";
+import api from "@/services/api/axiosInstance";
 
 interface UserAuthOptions {
   onSuccess?: () => void;
@@ -74,20 +75,8 @@ const UserAuth = ({ onSuccess, onError }: UserAuthOptions = {}) => {
 
       try {
         await loginUsuario(email, password);
-        const userResponse = await fetch(
-          "http://localhost:8080/api/usuarios/me",
-          {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (!userResponse.ok) {
-          throw new Error("No se pudieron obtener los datos del usuario");
-        }
-        const userData = await userResponse.json();
+        const resp = await api.get("/api/usuarios/me");
+        const userData = resp.data;
         localStorage.setItem("usuario", JSON.stringify(userData));
         window.dispatchEvent(new Event("userLoggedIn"));
         navigate("/cuenta");

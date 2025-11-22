@@ -18,6 +18,7 @@ import type {
 } from "@/types/product";
 import { getProductoFields } from "@/constants/authFields";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
+import { baseURL } from "@/services/api/axiosInstance";
 
 interface FormProductoProps {
   isOpen: boolean;
@@ -219,10 +220,14 @@ const FormProducto: React.FC<FormProductoProps> = ({
 
   return (
     <Modal open={isOpen} onOpenChange={onClose}>
-      <DialogTitle className={`${hideHeader ? "hidden" : ""} sin-titulo-target`}>
+      <DialogTitle
+        className={`${hideHeader ? "hidden" : ""} sin-titulo-target`}
+      >
         {productToEdit ? "Actualizar Producto" : "Registrar Producto"}
       </DialogTitle>
-      <DialogDescription className={`${hideHeader ? "hidden" : ""} sin-titulo-desc`}>
+      <DialogDescription
+        className={`${hideHeader ? "hidden" : ""} sin-titulo-desc`}
+      >
         {productToEdit
           ? "Modifica los datos del producto y guarda los cambios."
           : "Llena el formulario para registrar un nuevo producto."}
@@ -232,7 +237,9 @@ const FormProducto: React.FC<FormProductoProps> = ({
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-1">Imagen actual:</p>
             <img
-              src={`http://localhost:8080/uploads/productos/${productToEdit.imgProd}`}
+              src={`${baseURL.replace(/\/$/, "")}/uploads/productos/${
+                productToEdit.imgProd
+              }`}
               alt="Imagen del producto"
               className="w-32 h-32 object-cover rounded-md border"
             />
