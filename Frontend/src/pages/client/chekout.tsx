@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useCarrito } from "@/context/carritoContext";
+import useCarrito from "@/hooks/useCarrito";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

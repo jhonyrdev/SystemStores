@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { useCarrito } from "@/context/carritoContext";
+import useCarrito from "@/hooks/useCarrito";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Modal from "@components/common/Modal";
@@ -33,18 +33,23 @@ const CarritoAside = ({
   const [isLoginView, setIsLoginView] = useState(true);
 
   // Debug
-  console.log('CarritoAside - isLoginView:', isLoginView, 'modalOpen:', modalOpen);
+  console.log(
+    "CarritoAside - isLoginView:",
+    isLoginView,
+    "modalOpen:",
+    modalOpen
+  );
 
   // Cerrar modal cuando se navega a forgot-password
   useEffect(() => {
     const handleCloseModal = () => {
       setModalOpen(false);
     };
-    
-    window.addEventListener('closeForgotPasswordModal', handleCloseModal);
-    
+
+    window.addEventListener("closeForgotPasswordModal", handleCloseModal);
+
     return () => {
-      window.removeEventListener('closeForgotPasswordModal', handleCloseModal);
+      window.removeEventListener("closeForgotPasswordModal", handleCloseModal);
     };
   }, []);
 

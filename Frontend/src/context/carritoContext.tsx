@@ -1,25 +1,7 @@
-import { createContext, useContext, useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-
-export interface CarritoItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
-
-interface CarritoContextType {
-  items: CarritoItem[];
-  addItem: (item: Omit<CarritoItem, "quantity">) => void;
-  removeItem: (id: number) => void;
-  updateQuantity: (id: number, quantity: number) => void;
-  clearCarrito: () => void;
-  total: number;
-  itemCount: number;
-}
-
-const CarritoContext = createContext<CarritoContextType | undefined>(undefined);
+import type { CarritoItem } from "./carritoCore";
+import { CarritoContext } from "./carritoCore";
 
 export const CarritoProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CarritoItem[]>(() => {
@@ -31,29 +13,41 @@ export const CarritoProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("carrito", JSON.stringify(items));
   }, [items]);
 
-  const addItem = (item: Omit<CarritoItem, "quantity">) => {
+  const addItem = (
+    item: Omit<CarritoItem, "quantity"> & { quantity?: number }
+  ) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const existing = prev.find((i) => String(i.id) === String(item.id));
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          String(i.id) === String(item.id)
+            ? { ...i, quantity: i.quantity + (item.quantity ?? 1) }
+            : i
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          ...(item as Omit<CarritoItem, "quantity">),
+          quantity: item.quantity ?? 1,
+        },
+      ];
     });
   };
 
-  const removeItem = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  const removeItem = (id: string | number) => {
+    setItems((prev) => prev.filter((item) => String(item.id) !== String(id)));
   };
 
-  const updateQuantity = (id: number, quantity: number) => {
+  const updateQuantity = (id: string | number, quantity: number) => {
     if (quantity <= 0) {
       removeItem(id);
       return;
     }
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+      prev.map((item) =>
+        String(item.id) === String(id) ? { ...item, quantity } : item
+      )
     );
   };
 
@@ -62,7 +56,10 @@ export const CarritoProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("carrito");
   };
 
-  const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const total = items.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -82,10 +79,6 @@ export const CarritoProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useCarrito = () => {
-  const context = useContext(CarritoContext);
-  if (!context) {
-    throw new Error("useCarrito debe usarse dentro de CarritoProvider");
-  }
-  return context;
-};
+// NOTE: `useCarrito` hook is implemented in `src/hooks/useCarrito.ts` to avoid
+// the `react-refresh/only-export-components` ESLint rule which requires files
+// that export components to not export other functions/constants.

@@ -1,29 +1,21 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
-
-// Resolve base URL with safe fallbacks
-// NOTE: Our service paths already start with "/api" (e.g., api.get("/api/categorias")),
-// so the baseURL must NOT include "/api" to avoid double paths like "/api/api/...".
 const baseURL =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
   (window.location.hostname === "localhost"
     ? "http://localhost:8080"
     : `${window.location.origin}`);
 
-// Token storage key (adjust if you use another name)
 const TOKEN_KEY = "auth_token";
 
-// Create instance
 const api = axios.create({
   baseURL,
-  withCredentials: true, // send cookies (JSESSIONID / etc.)
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
   timeout: 15000,
 });
 
-// Request interceptor: attach Bearer token if available
-// NOTE: we only need the type; for ESM avoid runtime destructuring of internal names.
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -39,10 +31,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    // Intentionally silent here: keep rejecting the error so callers handle it,
-    // but avoid printing to the browser console to reduce noise in production.
-
-    return Promise.reject(error);
+  return Promise.reject(error);
   }
 );
 

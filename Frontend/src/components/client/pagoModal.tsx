@@ -17,7 +17,7 @@ import type {
   PedidoResponse,
   DetalleVenta,
 } from "@/types/ventas";
-import type { CarritoItem } from "@/context/carritoContext";
+import type { CarritoItem } from "@/context/carritoCore";
 import PaymentFormModals from "@/components/client/paymentFormModals";
 import { toast } from "sonner";
 
@@ -135,7 +135,6 @@ const PagoModal = ({
         setMensaje("Pago realizado exitosamente");
         setProcesando(false);
         setMetodoValidado(false);
-
       } else {
         setMensaje("Pago rechazado");
         toast.error("El pago no pudo ser procesado");

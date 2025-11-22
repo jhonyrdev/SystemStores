@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Producto } from "@/types/product";
 import { getProductoImgUrl } from "@/utils/producto";
-import { useCarrito } from "@/context/carritoContext";
+import useCarrito from "@/hooks/useCarrito";
 
 type Props = {
   show: boolean;
