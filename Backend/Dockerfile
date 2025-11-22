@@ -11,10 +11,10 @@ COPY src ./src
 RUN chmod +x mvnw
 RUN ./mvnw -q -DskipTests package
 
-RUN cp target/*.jar backend-0.0.1-SNAPSHOT.jar
+RUN cp target/*.jar app.jar
 
 EXPOSE 8080
 
 ENV SPRING_PROFILES_ACTIVE=cloud
 
-ENTRYPOINT ["java", "-jar", "backend-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
