@@ -7,7 +7,9 @@ COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
 COPY src ./src
+COPY uploads ./uploads
 
+RUN chmod -R 755 /app/uploads
 RUN chmod +x mvnw
 RUN ./mvnw -q -DskipTests package
 
