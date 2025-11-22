@@ -1,0 +1,31 @@
+EL siguiente doc es para configurar las dependencias para jpa y sql
+{copiar en applicaction.propierties}
+
+spring.application.name=backend
+
+spring.datasource.url=jdbc:{namedb}://localhost:{puerto}/{namedb}?useSSL=false&serverTimezone=UTC
+spring.datasource.username={usernamedb}
+spring.datasource.password={passworddb}
+spring.datasource.driver-class-name={driverDB}
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+app.google.client-id=TU_CLIENT_ID_REAL
+app.google.client-secret=TU_CLIENT_SECRET_REAL
+app.google.redirect-uri=http://localhost:{puerto}/{...}
+
+# Configuración de Email (SMTP)
+# Para Gmail: Usa una "Contraseña de aplicación" generada en tu cuenta de Google
+# Para otros proveedores, ajusta el host y puerto según sea necesario
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=tu-email@gmail.com
+spring.mail.password=tu-app-password-de-gmail
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+
+# URL del frontend para enlaces de recuperación de contraseña
+app.frontend.url=http://localhost:5173
