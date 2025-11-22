@@ -7,6 +7,8 @@ COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
 COPY src ./src
+COPY application-cloud.properties ./
+
 
 RUN chmod +x mvnw
 RUN ./mvnw -q -DskipTests package
