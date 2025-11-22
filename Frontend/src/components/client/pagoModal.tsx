@@ -107,8 +107,16 @@ const PagoModal = ({
         const codigo = generarCodigoComprobante();
         setCodigoComprobante(codigo);
 
+        // Validar y convertir ids a número (backend espera id_prod numérico)
+        const invalid = detallesVenta.find((it) => Number.isNaN(Number(it.id)));
+        if (invalid) {
+          toast.error(`Producto "${invalid.name}" tiene id inválido`);
+          setProcesando(false);
+          return;
+        }
+
         const detalles: DetalleVenta[] = detallesVenta.map((item) => ({
-          id_prod: item.id,
+          id_prod: Number(item.id),
           nom_prod: item.name,
           cantidad: item.quantity,
           precio_unit: item.price,

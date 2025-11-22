@@ -118,13 +118,25 @@ const Checkout = () => {
 
     setCreatingPedido(true);
     try {
+      // Validar ids numéricos antes de mapear detalles
+      const invalid = items.find((item) => Number.isNaN(Number(item.id)));
+      if (invalid) {
+        await Swal.fire({
+          icon: "error",
+          title: "Producto con id inválido",
+          text: `El producto "${invalid.name}" no tiene un id numérico válido.`,
+        });
+        setCreatingPedido(false);
+        return;
+      }
+
       const pedidoData: PedidoRequest = {
         id_cli: usuario.idCliente,
         tipo_entrega: metodoEnvio,
         id_dir: undefined,
         total: total,
         detalles: items.map((item) => ({
-          id_prod: item.id,
+          id_prod: Number(item.id),
           cantidad: item.quantity,
           precio_unit: item.price,
           subtotal: item.price * item.quantity,
