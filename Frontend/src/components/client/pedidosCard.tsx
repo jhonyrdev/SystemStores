@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "@/services/api/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Eye, XCircle } from "lucide-react";
@@ -7,6 +7,10 @@ import {
   cancelarPedido,
   actualizarEstadoPedido,
 } from "@/services/ventas/pedidoService";
+import {
+  getPedidoPagoStatus,
+  setPedidoPagoStatus,
+} from "@/utils/pedidoPagoStatus";
 
 // Definición de la interfaz Pedido
 interface Pedido {
@@ -27,6 +31,11 @@ const PedidosCard = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [currentPedidoId, setCurrentPedidoId] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedPedidoDetails, setSelectedPedidoDetails] = useState<{
+    pedido: Pedido;
+    pago: string;
+  } | null>(null);
   const [pedidosActivos, setPedidosActivos] = useState<Pedido[]>([]);
   const [historialPedidos, setHistorialPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,42 +46,21 @@ const PedidosCard = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 5;
 
-  useEffect(() => {
-    // initial load
-    cargarPedidos();
-  }, []);
+  const getPaymentStatusFor = useCallback(
+    (id: number, estadoPedido: string) => getPedidoPagoStatus(id, estadoPedido),
+    []
+  );
 
-  const getPaymentStatusMap = (): Record<number, string> => {
+  const markPaymentStatus = useCallback(async (id: number, status: string) => {
     try {
-      const raw = localStorage.getItem("pedidosPagoStatus");
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  };
-
-  const getPaymentStatusFor = (id: number, estadoPedido: string) => {
-    const map = getPaymentStatusMap();
-    if (map[id]) return map[id];
-    // fallback rules
-    if (estadoPedido === "Realizado") return "pagado";
-    if (estadoPedido === "Rechazado") return "devuelto";
-    return "pendiente";
-  };
-
-  const markPaymentStatus = (id: number, status: string) => {
-    try {
-      const raw = localStorage.getItem("pedidosPagoStatus");
-      const map = raw ? JSON.parse(raw) : {};
-      map[id] = status;
-      localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+      await setPedidoPagoStatus(id, status);
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
   // Extracted loader so it can be called from UI actions to refresh lists
-  const cargarPedidos = async () => {
+  const cargarPedidos = useCallback(async () => {
     try {
       setLoading(true);
       const storedUser = localStorage.getItem("usuario");
@@ -119,11 +107,23 @@ const PedidosCard = () => {
 
       const pedidosNormalizados: Pedido[] = pedidos.map(normalizePedido);
 
-      const activos = pedidosNormalizados.filter((p) => p.estado === "Nuevo");
+      // classify pedidos: active = estado Nuevo AND payment status pagado|pendiente
+      const activos: Pedido[] = [];
+      const historial: Pedido[] = [];
 
-      const historial = pedidosNormalizados.filter(
-        (p) => p.estado === "Realizado" || p.estado === "Rechazado"
-      );
+      for (const p of pedidosNormalizados) {
+        const pago = getPaymentStatusFor(p.idPed, p.estado);
+        // active only when estado is Nuevo and pago is pagado or pendiente
+        if (
+          p.estado === "Nuevo" &&
+          (pago === "pagado" || pago === "pendiente")
+        ) {
+          activos.push(p);
+        } else {
+          // everything else goes to history (including Realizado/Rechazado or failed/cancelled statuses)
+          historial.push(p);
+        }
+      }
 
       setPedidosActivos(activos);
       setHistorialPedidos(historial);
@@ -136,7 +136,12 @@ const PedidosCard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getPaymentStatusFor]);
+
+  // initial load (cargarPedidos is memoized)
+  useEffect(() => {
+    cargarPedidos();
+  }, [cargarPedidos]);
 
   const handleCancelarPedido = async (id: number) => {
     try {
@@ -151,9 +156,7 @@ const PedidosCard = () => {
 
   const handleMarcarEntregado = async (id: number) => {
     try {
-      // update on backend to Realizado
       await actualizarEstadoPedido(id, "Realizado");
-      // Refresh lists so historial updates automatically
       await cargarPedidos();
     } catch (err) {
       console.error("Error marcando pedido como entregado:", err);
@@ -161,10 +164,27 @@ const PedidosCard = () => {
     }
   };
 
-  const openPdf = async (id: number) => {
+  const openPdf = async (id: number, estado?: string) => {
     try {
       setPdfLoading(true);
       // request as blob so we can embed regardless of server X-Frame-Options
+      // check payment status first; for cancelled/failed/expired pedidos
+      // there is no comprobante PDF — show a details modal instead.
+      const pago = getPaymentStatusFor(id, estado ?? "Nuevo");
+      if (pago !== "pagado" && pago !== "devuelto") {
+        // find pedido object to show in modal
+        const findPedido =
+          pedidosActivos.find((p) => p.idPed === id) ||
+          historialPedidos.find((p) => p.idPed === id) ||
+          null;
+        setSelectedPedidoDetails(
+          findPedido ? { pedido: findPedido, pago } : null
+        );
+        setDetailsOpen(true);
+        setPdfLoading(false);
+        return;
+      }
+
       const resp = await api.get(`/api/pedidos/${id}/pdf`, {
         responseType: "blob",
       });
@@ -289,7 +309,7 @@ const PedidosCard = () => {
                       <td className="px-4 py-2 border-b">
                         <span
                           className="text-blue-600 cursor-pointer hover:underline"
-                          onClick={() => openPdf(pedido.idPed)}
+                          onClick={() => openPdf(pedido.idPed, pedido.estado)}
                         >
                           Ver detalles
                         </span>
@@ -459,6 +479,51 @@ const PedidosCard = () => {
                 width="100%"
                 height="100%"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailsOpen && selectedPedidoDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-11/12 md:w-1/2 rounded shadow-lg overflow-hidden">
+            <div className="flex justify-between items-center p-3 border-b">
+              <h3 className="text-sm font-medium">Detalle del pedido</h3>
+              <button
+                className="text-sm text-red-600 px-3"
+                onClick={() => {
+                  setDetailsOpen(false);
+                  setSelectedPedidoDetails(null);
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="p-4 space-y-3 text-sm">
+              <div>
+                <strong>ID Pedido:</strong> {selectedPedidoDetails.pedido.idPed}
+              </div>
+              <div>
+                <strong>Fecha:</strong> {selectedPedidoDetails.pedido.fecha}
+              </div>
+              <div>
+                <strong>Total:</strong> S/{" "}
+                {selectedPedidoDetails.pedido.total.toFixed(2)}
+              </div>
+              <div>
+                <strong>Estado pedido:</strong>{" "}
+                {selectedPedidoDetails.pedido.estado}
+              </div>
+              <div>
+                <strong>Estado pago:</strong>{" "}
+                <span className="font-semibold text-yellow-700">
+                  {selectedPedidoDetails.pago}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                No existe comprobante PDF para pedidos con estado de pago
+                "cancelado", "vencido" o "fallido".
+              </div>
             </div>
           </div>
         </div>

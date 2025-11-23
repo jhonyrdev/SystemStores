@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import useCarrito from "@/hooks/useCarrito";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -11,7 +12,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registrarVenta } from "@/services/ventas/ventaService";
-import { cancelarPedido } from "@/services/ventas/pedidoService";
+// backend updates are handled via setPedidoPagoStatus helper
+import { setPedidoPagoStatus } from "@/utils/pedidoPagoStatus";
 import type {
   VentaRequest,
   PedidoResponse,
@@ -20,6 +22,7 @@ import type {
 import type { CarritoItem } from "@/context/carritoCore";
 import PaymentFormModals from "@/components/client/paymentFormModals";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 interface PagoModalProps {
   open: boolean;
@@ -49,8 +52,7 @@ const PagoModal = ({
       const usuarioStr = localStorage.getItem("usuario");
       if (!usuarioStr) return null;
       return JSON.parse(usuarioStr);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
       return null;
     }
   }, []);
@@ -67,6 +69,12 @@ const PagoModal = ({
   );
   const [openPaymentForm, setOpenPaymentForm] = useState(false);
   const [metodoValidado, setMetodoValidado] = useState(false);
+  const [failureCount, setFailureCount] = useState(0);
+  const [allowedSwitchUsed, setAllowedSwitchUsed] = useState(false);
+  const [attemptOutcomes, setAttemptOutcomes] = useState<boolean[]>([]);
+  const [errorMetodo, setErrorMetodo] = useState("");
+  const [errorRuc, setErrorRuc] = useState("");
+  const [errorUsuario, setErrorUsuario] = useState("");
   const navigate = useNavigate();
 
   const generarCodigoComprobante = (): string => {
@@ -75,24 +83,59 @@ const PagoModal = ({
     return `${prefijo}-${numero}`;
   };
 
+  const [localTipoComprobante, setLocalTipoComprobante] = useState("");
+  const [errorTipo, setErrorTipo] = useState("");
+  const { clearCarrito } = useCarrito();
+
+  useEffect(() => {
+    if (open) {
+      // al abrir el modal, no mostrar selección previa
+      setLocalTipoComprobante("");
+      // resetear metodo seleccionado en la UI hasta que el usuario lo elija
+      setMetodoSeleccionado(null);
+      setMetodoValidado(false);
+      setOpenPaymentForm(false);
+      setFailureCount(0);
+      setAllowedSwitchUsed(false);
+      setErrorMetodo("");
+      setErrorRuc("");
+      setErrorUsuario("");
+      setErrorTipo("");
+      // original behavior: random sequence of success ~30%
+      const seq = Array.from({ length: 3 }, () => Math.random() < 0.3);
+      setAttemptOutcomes(seq);
+    }
+  }, [open]);
+
   const handleSimularPago = async () => {
+    setErrorMetodo("");
+    setErrorRuc("");
+    setErrorUsuario("");
+    setErrorTipo("");
+
+    // require user to select tipo de comprobante in this modal
+    if (!localTipoComprobante) {
+      setErrorTipo("Selecciona tipo de comprobante");
+      return;
+    }
+
+    const effectiveTipo = localTipoComprobante || tipoComprobante;
     if (!usuario?.idCliente) {
-      toast.error("Error: Usuario no válido");
+      setErrorUsuario("Usuario no válido");
       return;
     }
 
     if (metodoSeleccionado === null) {
-      toast.warning("Selecciona un método de pago");
+      setErrorMetodo("Selecciona un método de pago");
+      return;
+    }
+    if (effectiveTipo === "factura" && (!ruc || !razonSocial)) {
+      setErrorRuc("Debes ingresar RUC y Razón Social");
       return;
     }
 
-    if (tipoComprobante === "factura" && (!ruc || !razonSocial)) {
-      toast.warning("Debes ingresar RUC y Razón Social");
-      return;
-    }
-
-    if (tipoComprobante === "factura" && ruc.length !== 11) {
-      toast.warning("El RUC debe tener 11 dígitos");
+    if (effectiveTipo === "factura" && ruc.length !== 11) {
+      setErrorRuc("El RUC debe tener 11 dígitos");
       return;
     }
 
@@ -101,13 +144,12 @@ const PagoModal = ({
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const exito = Math.random() < 0.7;
+      const exito = attemptOutcomes[failureCount] ?? Math.random() < 0.3;
 
       if (exito) {
         const codigo = generarCodigoComprobante();
         setCodigoComprobante(codigo);
 
-        // Validar y convertir ids a número (backend espera id_prod numérico)
         const invalid = detallesVenta.find((it) => Number.isNaN(Number(it.id)));
         if (invalid) {
           toast.error(`Producto "${invalid.name}" tiene id inválido`);
@@ -128,11 +170,11 @@ const PagoModal = ({
           id_ped: pedidoRegistrado.id_ped,
           id_metodo: metodoSeleccionado ?? 1,
           total: totalVenta,
-          tipo: tipoComprobante,
+          tipo: effectiveTipo as "boleta" | "factura",
           codigo: codigo,
-          ruc_cliente: tipoComprobante === "factura" ? ruc : undefined,
+          ruc_cliente: effectiveTipo === "factura" ? ruc : undefined,
           razon_social_cliente:
-            tipoComprobante === "factura" ? razonSocial : undefined,
+            effectiveTipo === "factura" ? razonSocial : undefined,
           detalles: detalles,
         };
 
@@ -147,6 +189,68 @@ const PagoModal = ({
         setMensaje("Pago rechazado");
         toast.error("El pago no pudo ser procesado");
         setProcesando(false);
+        const newCount = failureCount + 1;
+        setFailureCount(newCount);
+
+        if (newCount >= 3) {
+          try {
+            if (pedidoRegistrado?.id_ped) {
+              try {
+                await setPedidoPagoStatus(pedidoRegistrado.id_ped, "fallido");
+              } catch {
+                /* ignore storage errors */
+              }
+            }
+          } catch (err) {
+            console.warn("Error actualizando estado tras fallos:", err);
+          }
+
+          try {
+            localStorage.removeItem("ultimoPagoStatus");
+          } catch {
+            /* ignore */
+          }
+
+          try {
+            localStorage.removeItem("pedidoRegistrado");
+          } catch {
+            /* ignore */
+          }
+
+          try {
+            await Swal.fire({
+              icon: "error",
+              title: "Pago fallido",
+              text: "El pago falló varias veces. El carrito se limpiará y verás tus pedidos.",
+            });
+          } catch {
+            /* ignore */
+          }
+
+          try {
+            clearCarrito();
+          } catch {
+            /* ignore */
+          }
+
+          try {
+            onResultado(false);
+          } catch {
+            /* ignore */
+          }
+
+          onOpenChange(false);
+          try {
+            navigate("/cuenta/pedido");
+          } catch {
+            try {
+              window.location.href = "/cuenta/pedido";
+            } catch {
+              /* ignore */
+            }
+          }
+          return;
+        }
       }
     } catch (error) {
       console.error("Error al procesar pago:", error);
@@ -161,14 +265,38 @@ const PagoModal = ({
 
   const handleCerrar = async () => {
     if (!pagoRealizado) {
+      // mark local status and notify parent. Also ensure backend sync for terminal statuses
       try {
         if (pedidoRegistrado?.id_ped) {
-          await cancelarPedido(pedidoRegistrado.id_ped);
+          try {
+            const status = failureCount >= 3 ? "fallido" : "cancelado";
+            await setPedidoPagoStatus(pedidoRegistrado.id_ped, status);
+          } catch {
+            /* ignore */
+          }
         }
       } catch (err) {
-        console.warn("Error cancelando pedido al cerrar modal:", err);
+        console.warn("Error marcando pedido en localStorage/backend:", err);
       }
-      onResultado(false);
+      // If the user closed after 3 failures, set transient flag so checkout treats it as 'fallido'
+      try {
+        if (failureCount >= 3 && pedidoRegistrado?.id_ped) {
+          localStorage.setItem(
+            "ultimoPagoStatus",
+            JSON.stringify({ pid: pedidoRegistrado.id_ped, status: "fallido" })
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+
+      // notify parent (Checkout) about cancellation so it can cleanup
+      try {
+        onResultado(false);
+      } catch (err) {
+        console.warn("Error notifying parent on cancel:", err);
+      }
+
       // reset and close
       setPagoRealizado(false);
       setProcesando(false);
@@ -179,6 +307,20 @@ const PagoModal = ({
       setCodigoComprobante("");
       setMetodoValidado(false);
       onOpenChange(false);
+      try {
+        if (usuario) {
+          navigate("/cuenta");
+        } else {
+          navigate("/");
+        }
+      } catch {
+        // fallback to full redirect if SPA navigation fails
+        try {
+          window.location.href = usuario ? "/cuenta" : "/";
+        } catch {
+          /* ignore */
+        }
+      }
       return;
     }
     try {
@@ -217,7 +359,7 @@ const PagoModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Simulador de pago online</DialogTitle>
+          <DialogTitle>Pago online</DialogTitle>
           <p className="text-sm text-muted-foreground">
             {!pagoRealizado &&
               !procesando &&
@@ -226,6 +368,11 @@ const PagoModal = ({
             {pagoRealizado && mensaje}
           </p>
         </DialogHeader>
+        {errorUsuario && (
+          <div className="px-4">
+            <p className="text-sm text-red-600">{errorUsuario}</p>
+          </div>
+        )}
 
         {!pagoRealizado && !procesando && (
           <div className="space-y-4">
@@ -242,8 +389,12 @@ const PagoModal = ({
             <div>
               <Label className="font-semibold">Tipo de comprobante</Label>
               <RadioGroup
-                value={tipoComprobante}
-                onValueChange={handleTipoComprobanteChange}
+                value={localTipoComprobante}
+                onValueChange={(val) => {
+                  setLocalTipoComprobante(val);
+                  handleTipoComprobanteChange(val);
+                  setErrorTipo("");
+                }}
                 className="mt-2"
               >
                 <div className="flex items-center space-x-2">
@@ -255,6 +406,9 @@ const PagoModal = ({
                   <label htmlFor="factura">Factura</label>
                 </div>
               </RadioGroup>
+              {errorTipo && (
+                <p className="text-xs text-red-600 mt-2">{errorTipo}</p>
+              )}
             </div>
 
             <div className="mt-4">
@@ -262,25 +416,61 @@ const PagoModal = ({
               <RadioGroup
                 value={metodoSeleccionado?.toString() || ""}
                 onValueChange={(val) => {
-                  setMetodoSeleccionado(parseInt(val));
+                  const parsed = parseInt(val);
+                  // if already validated, allow a single switch only after two failures
+                  if (metodoValidado) {
+                    if (failureCount >= 2 && !allowedSwitchUsed) {
+                      setAllowedSwitchUsed(true);
+                      setMetodoSeleccionado(parsed);
+                      setMetodoValidado(false);
+                      setOpenPaymentForm(true);
+                    }
+                    return;
+                  }
+                  setMetodoSeleccionado(parsed);
+                  setErrorMetodo("");
                   setMetodoValidado(false);
                   setOpenPaymentForm(true);
                 }}
                 className="mt-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1" id="yape-modal" />
+                  <RadioGroupItem
+                    value="1"
+                    id="yape-modal"
+                    disabled={
+                      metodoValidado &&
+                      !(failureCount >= 2 && !allowedSwitchUsed)
+                    }
+                  />
                   <Label htmlFor="yape-modal">Yape</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="2" id="plin-modal" />
+                  <RadioGroupItem
+                    value="2"
+                    id="plin-modal"
+                    disabled={
+                      metodoValidado &&
+                      !(failureCount >= 2 && !allowedSwitchUsed)
+                    }
+                  />
                   <Label htmlFor="plin-modal">Plin</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="3" id="tarjeta-modal" />
+                  <RadioGroupItem
+                    value="3"
+                    id="tarjeta-modal"
+                    disabled={
+                      metodoValidado &&
+                      !(failureCount >= 2 && !allowedSwitchUsed)
+                    }
+                  />
                   <Label htmlFor="tarjeta-modal">Tarjeta</Label>
                 </div>
               </RadioGroup>
+              {errorMetodo && (
+                <p className="text-xs text-red-600 mt-2">{errorMetodo}</p>
+              )}
             </div>
 
             {tipoComprobante === "factura" && (
@@ -298,6 +488,9 @@ const PagoModal = ({
                   <p className="text-xs text-muted-foreground mt-1">
                     Debe tener 11 dígitos
                   </p>
+                  {errorRuc && (
+                    <p className="text-xs text-red-600">{errorRuc}</p>
+                  )}
                 </div>
                 <div>
                   <Label>Razón Social *</Label>
@@ -318,12 +511,15 @@ const PagoModal = ({
               Realizar Pago
             </Button>
 
-            <Button variant="outline" className="w-full" onClick={handleCerrar}>
-              Cancelar
+            <Button
+              variant="outline"
+              className="w-full mt-2"
+              onClick={handleCerrar}
+            >
+              Cancelar Pago
             </Button>
           </div>
         )}
-
         {procesando && !pagoRealizado && (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -379,6 +575,7 @@ const PagoModal = ({
             </Button>
           </div>
         )}
+
         <PaymentFormModals
           metodoPago={metodoSeleccionado}
           open={openPaymentForm}

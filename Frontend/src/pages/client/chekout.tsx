@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Swal from "sweetalert2";
 import PagoModal from "@/components/client/pagoModal";
 import { registrarPedido } from "@/services/ventas/pedidoService";
+import { setPedidoPagoStatus } from "@/utils/pedidoPagoStatus";
 import type { PedidoRequest, PedidoResponse } from "@/types/ventas";
 
 const Checkout = () => {
@@ -146,15 +147,16 @@ const Checkout = () => {
       const response = await registrarPedido(pedidoData);
       setPedidoRegistrado(response);
       try {
-        const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+        const expiresAt = Date.now() + 3 * 60 * 1000; // 3 minutes
+        // Para cambiar a 10 minutos descomenta la siguiente línea:
+        // const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+        // Para cambiar a 20 minutos descomenta la siguiente línea:
+        // const expiresAt = Date.now() + 20 * 60 * 1000; // 20 minutes
         const payload = { pedido: response, expiresAt };
         localStorage.setItem("pedidoRegistrado", JSON.stringify(payload));
 
         try {
-          const mapRaw = localStorage.getItem("pedidosPagoStatus");
-          const map = mapRaw ? JSON.parse(mapRaw) : {};
-          map[response.id_ped] = "pendiente";
-          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+          await setPedidoPagoStatus(response.id_ped, "pendiente");
         } catch {
           /* ignore */
         }
@@ -177,19 +179,24 @@ const Checkout = () => {
     setCreatingPedido(false);
     setOpenPagoModal(false);
     if (exito) {
-      // The PagoModal already shows the success UI and navigates the user.
-      // Here we only update state/localStorage and clear the carrito.
       clearCarrito();
       try {
         const stored = localStorage.getItem("pedidoRegistrado");
         const parsed = stored ? JSON.parse(stored) : null;
         const pid = parsed?.pedido?.id_ped ?? parsed?.id_ped;
         if (pid) {
-          const mapRaw = localStorage.getItem("pedidosPagoStatus");
-          const map = mapRaw ? JSON.parse(mapRaw) : {};
-          map[pid] = "pagado";
-          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+          try {
+            await setPedidoPagoStatus(pid, "pagado");
+          } catch {
+            /* ignore */
+          }
         }
+      } catch {
+        /* ignore */
+      }
+      // cleanup any transient flags
+      try {
+        localStorage.removeItem("ultimoPagoStatus");
       } catch {
         /* ignore */
       }
@@ -207,26 +214,103 @@ const Checkout = () => {
         const stored = localStorage.getItem("pedidoRegistrado");
         const parsed = stored ? JSON.parse(stored) : null;
         const pid = parsed?.pedido?.id_ped ?? parsed?.id_ped;
-        if (pid) {
-          const mapRaw = localStorage.getItem("pedidosPagoStatus");
-          const map = mapRaw ? JSON.parse(mapRaw) : {};
-          map[pid] = "cancelado";
-          localStorage.setItem("pedidosPagoStatus", JSON.stringify(map));
+
+        // First check a short-lived flag set by the pago modal (give it priority)
+        let estado: string | undefined = undefined;
+        try {
+          const ultimo = localStorage.getItem("ultimoPagoStatus");
+          if (ultimo && pid) {
+            const up = JSON.parse(ultimo);
+            if (up?.pid === pid && up?.status) {
+              estado = up.status;
+            }
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
+
+        // If no transient flag, read the persistent map
+        if (!estado) {
+          try {
+            const mapRaw = localStorage.getItem("pedidosPagoStatus");
+            const map = mapRaw ? JSON.parse(mapRaw) : {};
+            estado = pid ? map[pid] : undefined;
+          } catch {
+            estado = undefined;
+          }
+        }
+
+        if (estado === "cancelado" || estado === "rechazado" || !estado) {
+          clearCarrito();
+          setPedidoRegistrado(null);
+          try {
+            localStorage.removeItem("pedidoRegistrado");
+          } catch {
+            /* ignore */
+          }
+          if (pid) {
+            try {
+              await setPedidoPagoStatus(pid, "cancelado");
+            } catch {
+              /* ignore */
+            }
+          }
+          try {
+            localStorage.removeItem("ultimoPagoStatus");
+          } catch {
+            /* ignore */
+          }
+          setDetallesConfirmados(false);
+          await Swal.fire({
+            icon: "info",
+            title: "Pago cancelado",
+            text: "Has cancelado el pago. El carrito fue limpiado.",
+          });
+        } else if (estado === "fallido") {
+          // Payment failed after several attempts — keep carrito intact for review
+          try {
+            localStorage.removeItem("ultimoPagoStatus");
+          } catch {
+            /* ignore */
+          }
+          await Swal.fire({
+            icon: "error",
+            title: "Pago fallido",
+            text: "El pago falló varias veces. El pedido quedó en estado 'fallido'.",
+          });
+        } else {
+          // Fallback: clear carrito
+          clearCarrito();
+          setPedidoRegistrado(null);
+          try {
+            localStorage.removeItem("pedidoRegistrado");
+          } catch {
+            /* ignore */
+          }
+          setDetallesConfirmados(false);
+          await Swal.fire({
+            icon: "info",
+            title: "Pago cancelado",
+            text: "El carrito fue limpiado.",
+          });
+        }
+      } catch (err) {
+        console.warn("Error procesando resultado de pago:", err);
+        // Ensure we at least clear the carrito to keep UX consistent
+        clearCarrito();
+        setPedidoRegistrado(null);
+        setDetallesConfirmados(false);
+        try {
+          localStorage.removeItem("pedidoRegistrado");
+        } catch {
+          /* ignore */
+        }
+        void Swal.fire({
+          icon: "info",
+          title: "Pago cancelado",
+          text: "El carrito fue limpiado.",
+        });
       }
-      try {
-        localStorage.removeItem("pedidoRegistrado");
-      } catch {
-        /* ignore */
-      }
-      setPedidoRegistrado(null);
-      void Swal.fire({
-        icon: "error",
-        title: "Pago fallido",
-        text: "El pago ha fallado o fue cancelado.",
-      });
     }
   };
 
@@ -383,7 +467,7 @@ const Checkout = () => {
                           }
                         }}
                       >
-                        Cancelar compra
+                        Eliminar Pedido
                       </Button>
                     )}
                   </div>

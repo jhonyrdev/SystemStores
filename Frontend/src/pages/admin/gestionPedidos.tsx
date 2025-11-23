@@ -12,7 +12,6 @@ import {
 } from "@/services/ventas/pedidoService";
 import type { DetallePedidoItem } from "@/services/ventas/pedidoService";
 
-
 interface Pedido {
   idPed: number;
   cliente: {
@@ -122,7 +121,6 @@ const GestionPedidos = () => {
       id: "pago",
       header: "Pago",
       cell: ({ row }) => {
-        // derive payment status from localStorage map or fallback
         try {
           const raw = localStorage.getItem("pedidosPagoStatus");
           const map = raw ? JSON.parse(raw) : {};
@@ -137,7 +135,10 @@ const GestionPedidos = () => {
           const color =
             pago === "pagado"
               ? "bg-green-100 text-green-700"
-              : pago === "devuelto"
+              : pago === "devuelto" ||
+                pago === "cancelado" ||
+                pago === "fallido" ||
+                pago === "vencido"
               ? "bg-red-100 text-red-700"
               : "bg-yellow-100 text-yellow-700";
           return <Badge className={color}>{pago}</Badge>;

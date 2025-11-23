@@ -3,6 +3,7 @@ import { Button } from "@components/ui/button";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { useEffect, useState } from "react";
+import useCarrito from "@/hooks/useCarrito";
 import type { Cliente } from "@/types/cliente";
 
 interface Props {
@@ -35,27 +36,57 @@ const ClientSliderbar: React.FC<Props> = ({ onSelect }) => {
     return () => window.removeEventListener("userLoggedIn", handleUserLogin);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("usuario");
+  const { clearCarrito } = useCarrito();
+
+  const handleLogout = async () => {
+    try {
+      // try server logout but ignore errors
+      const { logoutUsuario } = await import("@/services/auth/userServices");
+      try {
+        await logoutUsuario();
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* ignore dynamic import errors */
+    }
+
+    try {
+      clearCarrito();
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      localStorage.removeItem("usuario");
+    } catch {
+      /* ignore */
+    }
     setUsuario(null);
+    try {
+      window.dispatchEvent(new Event("userLoggedOut"));
+    } catch {
+      /* ignore */
+    }
     navigate("/");
   };
 
   const handleLogoutClick = () => {
     Swal.fire({
       title: "¿Deseas cerrar sesión?",
+      text: "Al cerrar sesión tu carrito será limpiado.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#30d6b8ff",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, cerrar sesión",
+      confirmButtonText: "Sí, cerrar sesión y limpiar carrito",
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (result.isConfirmed) {
         handleLogout();
         Swal.fire({
           title: "Hecho",
-          text: "Sesión finalizada.",
+          text: "Sesión finalizada y carrito limpiado.",
           icon: "success",
         });
       }

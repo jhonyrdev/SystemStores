@@ -34,14 +34,23 @@ const PaymentFormModals = ({
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [tarjetaSuccess, setTarjetaSuccess] = useState(false);
+  // Inline error messages
+  const [errorPhoneYape, setErrorPhoneYape] = useState("");
+  const [errorPhonePlin, setErrorPhonePlin] = useState("");
+  const [errorCardNumber, setErrorCardNumber] = useState("");
+  const [errorCvv, setErrorCvv] = useState("");
+  const [errorExpiry, setErrorExpiry] = useState("");
 
   const handleYapeValidate = () => {
-    if (!phoneYape.trim()) {
-      alert("Por favor ingresa un número de teléfono");
-      return;
-    }
-    if (phoneYape.length !== 9) {
-      alert("El número debe tener 9 dígitos");
+    setErrorPhoneYape("");
+    // Invalid if empty, wrong length, doesn't start with 9, or all digits equal
+    if (
+      !phoneYape.trim() ||
+      phoneYape.length !== 9 ||
+      !phoneYape.startsWith("9") ||
+      /^([0-9])\1{8}$/.test(phoneYape)
+    ) {
+      setErrorPhoneYape("numero no valido");
       return;
     }
     // Simular validación exitosa
@@ -56,12 +65,14 @@ const PaymentFormModals = ({
   };
 
   const handlePlinValidate = () => {
-    if (!phonePlin.trim()) {
-      alert("Por favor ingresa un número de teléfono");
-      return;
-    }
-    if (phonePlin.length !== 9) {
-      alert("El número debe tener 9 dígitos");
+    setErrorPhonePlin("");
+    if (
+      !phonePlin.trim() ||
+      phonePlin.length !== 9 ||
+      !phonePlin.startsWith("9") ||
+      /^([0-9])\1{8}$/.test(phonePlin)
+    ) {
+      setErrorPhonePlin("numero no valido");
       return;
     }
     Swal.fire({
@@ -75,21 +86,74 @@ const PaymentFormModals = ({
   };
 
   const handleTarjetaValidate = () => {
+    setErrorCardNumber("");
+    setErrorCvv("");
+    setErrorExpiry("");
+
     if (
       !cardNumber.trim() ||
       !cardHolder.trim() ||
       !expiryDate.trim() ||
       !cvv.trim()
     ) {
-      alert("Por favor completa todos los campos");
+      // Mark missing fields as generic expiry error if expiry empty, else card error
+      if (!expiryDate.trim()) setErrorExpiry("Vencimiento incorrecto");
+      if (!cardNumber.trim()) setErrorCardNumber("Número de tarjeta erróneo");
+      if (!cvv.trim()) setErrorCvv("CVV ingresado es incorrecto");
       return;
     }
-    if (cardNumber.replace(/\s/g, "").length !== 16) {
-      alert("El número de tarjeta debe tener 16 dígitos");
+
+    const rawCard = cardNumber.replace(/\s/g, "");
+    if (rawCard.length !== 16 || /\D/.test(rawCard)) {
+      setErrorCardNumber("Número de tarjeta erróneo");
       return;
     }
-    if (cvv.length !== 3) {
-      alert("El CVV debe tener 3 dígitos");
+
+    // Luhn algorithm
+    const luhnCheck = (num: string) => {
+      let sum = 0;
+      let shouldDouble = false;
+      for (let i = num.length - 1; i >= 0; i--) {
+        let digit = parseInt(num.charAt(i), 10);
+        if (shouldDouble) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        shouldDouble = !shouldDouble;
+      }
+      return sum % 10 === 0;
+    };
+
+    if (!luhnCheck(rawCard)) {
+      setErrorCardNumber("Número de tarjeta erróneo");
+      return;
+    }
+
+    if (cvv.length !== 3 || /\D/.test(cvv)) {
+      setErrorCvv("CVV ingresado es incorrecto");
+      return;
+    }
+
+    // Expiry MM/YY validation: MM between 01-12, YY strictly greater than current YY
+    const expiryMatch = expiryDate.match(/^(\d{2})\/(\d{2})$/);
+    if (!expiryMatch) {
+      setErrorExpiry("Vencimiento incorrecto");
+      setExpiryDate("");
+      return;
+    }
+    const mm = parseInt(expiryMatch[1], 10);
+    const yy = parseInt(expiryMatch[2], 10);
+    if (isNaN(mm) || mm < 1 || mm > 12) {
+      setErrorExpiry("Vencimiento incorrecto");
+      setExpiryDate("");
+      return;
+    }
+    const currentYear = new Date().getFullYear();
+    const currentYY = currentYear % 100;
+    if (isNaN(yy) || yy <= currentYY) {
+      setErrorExpiry("Vencimiento incorrecto");
+      setExpiryDate("");
       return;
     }
     Swal.fire({
@@ -112,6 +176,12 @@ const PaymentFormModals = ({
     setExpiryDate("");
     setCvv("");
     setTarjetaSuccess(false);
+    // clear inline errors
+    setErrorPhoneYape("");
+    setErrorPhonePlin("");
+    setErrorCardNumber("");
+    setErrorCvv("");
+    setErrorExpiry("");
     onOpenChange(false);
   };
 
@@ -122,8 +192,15 @@ const PaymentFormModals = ({
   };
 
   const handleExpiryDateChange = (value: string) => {
+    setErrorExpiry("");
     const digits = value.replace(/\D/g, "").slice(0, 4);
     if (digits.length >= 2) {
+      const mm = parseInt(digits.slice(0, 2), 10);
+      if (isNaN(mm) || mm < 1 || mm > 12) {
+        setErrorExpiry("Vencimiento incorrecto");
+        setExpiryDate("");
+        return;
+      }
       setExpiryDate(`${digits.slice(0, 2)}/${digits.slice(2)}`);
     } else {
       setExpiryDate(digits);
@@ -183,22 +260,26 @@ const PaymentFormModals = ({
                       id="yape-phone"
                       placeholder="Ej: 987654321"
                       value={phoneYape}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setPhoneYape(
                           e.target.value.replace(/\D/g, "").slice(0, 9)
-                        )
-                      }
+                        );
+                        setErrorPhoneYape("");
+                      }}
                       maxLength={9}
                     />
                     <p className="text-xs text-muted-foreground">
                       Ingresa tu número de 9 dígitos
                     </p>
+                    {errorPhoneYape && (
+                      <p className="text-xs text-red-600">{errorPhoneYape}</p>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p className="text-xs text-blue-900">
-                      ℹ️ Recibirás una notificación en tu app Yape para
-                      confirmar el pago
+                      Recibirás una notificación en tu app Yape para confirmar
+                      el pago
                     </p>
                   </div>
 
@@ -286,16 +367,20 @@ const PaymentFormModals = ({
                       id="plin-phone"
                       placeholder="Ej: 987654321"
                       value={phonePlin}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setPhonePlin(
                           e.target.value.replace(/\D/g, "").slice(0, 9)
-                        )
-                      }
+                        );
+                        setErrorPhonePlin("");
+                      }}
                       maxLength={9}
                     />
                     <p className="text-xs text-muted-foreground">
                       Ingresa tu número de 9 dígitos
                     </p>
+                    {errorPhonePlin && (
+                      <p className="text-xs text-red-600">{errorPhonePlin}</p>
+                    )}
                   </div>
 
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
@@ -374,12 +459,18 @@ const PaymentFormModals = ({
                       id="card-number"
                       placeholder="0000 0000 0000 0000"
                       value={cardNumber}
-                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      onChange={(e) => {
+                        handleCardNumberChange(e.target.value);
+                        setErrorCardNumber("");
+                      }}
                       maxLength={19}
                     />
                     <p className="text-xs text-muted-foreground">
                       16 dígitos sin espacios
                     </p>
+                    {errorCardNumber && (
+                      <p className="text-xs text-red-600">{errorCardNumber}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -406,6 +497,9 @@ const PaymentFormModals = ({
                         onChange={(e) => handleExpiryDateChange(e.target.value)}
                         maxLength={5}
                       />
+                      {errorExpiry && (
+                        <p className="text-xs text-red-600">{errorExpiry}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cvv">CVV *</Label>
@@ -413,10 +507,16 @@ const PaymentFormModals = ({
                         id="cvv"
                         placeholder="000"
                         value={cvv}
-                        onChange={(e) => handleCvvChange(e.target.value)}
+                        onChange={(e) => {
+                          handleCvvChange(e.target.value);
+                          setErrorCvv("");
+                        }}
                         maxLength={3}
                         type="password"
                       />
+                      {errorCvv && (
+                        <p className="text-xs text-red-600">{errorCvv}</p>
+                      )}
                     </div>
                   </div>
 
