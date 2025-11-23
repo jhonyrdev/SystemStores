@@ -45,7 +45,6 @@ const PaymentFormModals = ({
       return;
     }
     // Simular validación exitosa
-    console.log("Yape payment validated:", { phone: phoneYape });
     Swal.fire({
       icon: "success",
       title: "Método de pago validado correctamente",
@@ -65,7 +64,6 @@ const PaymentFormModals = ({
       alert("El número debe tener 9 dígitos");
       return;
     }
-    console.log("Plin payment validated:", { phone: phonePlin });
     Swal.fire({
       icon: "success",
       title: "Método de pago validado correctamente",
@@ -94,11 +92,6 @@ const PaymentFormModals = ({
       alert("El CVV debe tener 3 dígitos");
       return;
     }
-    console.log("Card payment validated:", {
-      cardNumber: cardNumber.slice(-4),
-      cardHolder,
-      expiryDate,
-    });
     Swal.fire({
       icon: "success",
       title: "Método de pago validado correctamente",

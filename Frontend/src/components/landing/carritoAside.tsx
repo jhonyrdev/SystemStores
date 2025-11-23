@@ -32,14 +32,6 @@ const CarritoAside = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
 
-  // Debug
-  console.log(
-    "CarritoAside - isLoginView:",
-    isLoginView,
-    "modalOpen:",
-    modalOpen
-  );
-
   // Cerrar modal cuando se navega a forgot-password
   useEffect(() => {
     const handleCloseModal = () => {

@@ -22,7 +22,8 @@ public class CorsConfig {
 		return List.of(
 				"http://localhost:5173",
 				"http://localhost:5174",
-				"https://systemstoresf.onrender.com");
+				"https://systemstoresf.onrender.com",
+				"https://systemstores.onrender.com");
 	}
 
 	@Bean
