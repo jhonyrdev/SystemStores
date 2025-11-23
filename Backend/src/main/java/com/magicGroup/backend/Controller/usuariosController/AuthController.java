@@ -17,7 +17,6 @@ import java.util.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/usuarios")
-// Removed narrow @CrossOrigin (only 5173) to rely on global CorsConfig (5173 & 5174)
 public class AuthController {
 
 	private final AuthService authService;
