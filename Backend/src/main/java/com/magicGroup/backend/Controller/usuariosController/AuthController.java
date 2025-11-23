@@ -2,6 +2,7 @@ package com.magicGroup.backend.Controller.usuariosController;
 
 import com.magicGroup.backend.model.usuarios.Cliente;
 import com.magicGroup.backend.services.extrasServices.AuthService;
+import org.springframework.beans.factory.annotation.Value;
 import com.magicGroup.backend.repository.usuariosRepository.CredencialRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,9 @@ public class AuthController {
 	private final CredencialRepository credencialRepository;
 	private final PasswordEncoder passwordEncoder;
 	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
+	@Value("${google.redirect-uri}")
+	private String googleRedirectUri;
 
 	// Login Cliente
 	@PostMapping("/loginCliente")
@@ -71,7 +75,11 @@ public class AuthController {
 	@PostMapping("/google-login")
 	public ResponseEntity<?> loginConGoogle(@RequestBody Map<String, String> body, HttpServletRequest request) {
 		String code = body.get("code");
-		String redirectUri = "http://localhost:5173/auth/callback";
+		// Use the redirect URI configured in properties. If frontend sends a
+		// `redirectUri` in the body,
+		// prefer that (useful for development), otherwise fall back to configured
+		// value.
+		String redirectUri = body.getOrDefault("redirectUri", googleRedirectUri);
 
 		try {
 			Map<String, Object> googleUser = authService.loginConGoogle(code, redirectUri);
@@ -177,8 +185,8 @@ public class AuthController {
 			authService.solicitarRecuperacionContrasena(email);
 			// Por seguridad, siempre devolvemos el mismo mensaje
 			return ResponseEntity.ok(Map.of(
-				"message", "Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"
-			));
+					"message",
+					"Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"));
 		} catch (RuntimeException e) {
 			// Si es usuario de Google, informamos específicamente
 			if (e.getMessage().contains("Google")) {
@@ -186,8 +194,8 @@ public class AuthController {
 			}
 			// Para otros errores, mensaje genérico por seguridad
 			return ResponseEntity.ok(Map.of(
-				"message", "Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"
-			));
+					"message",
+					"Si el correo está registrado, recibirás un email con instrucciones para restablecer tu contraseña"));
 		}
 	}
 
