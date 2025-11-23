@@ -85,7 +85,7 @@ public class ProductoController {
     private String guardarImagen(MultipartFile imagen) throws IOException {
         if (imagen == null || imagen.isEmpty())
             return null;
-
+        // Save locally in uploads/productos
         Path uploadPath = Paths.get(UPLOAD_DIR);
         if (!Files.exists(uploadPath))
             Files.createDirectories(uploadPath);
@@ -213,4 +213,7 @@ public class ProductoController {
                     .body(Map.of("error", "No se pudo eliminar el producto: " + e.getMessage()));
         }
     }
+
+    // Migration to Cloudinary removed per request — no migration endpoints remain.
+
 }

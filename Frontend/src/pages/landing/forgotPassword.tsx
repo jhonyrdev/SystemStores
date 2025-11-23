@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Enviando..." : "Enviar instrucciones"}
             </Button>
-            <Link to="/auth/login" className="text-sm text-blue-600 hover:text-blue-800 text-center w-full">
+            <Link to="/" className="text-sm text-blue-600 hover:text-blue-800 text-center w-full">
               Volver al inicio de sesión
             </Link>
           </CardFooter>

@@ -18,7 +18,7 @@ import type {
 } from "@/types/product";
 import { getProductoFields } from "@/constants/authFields";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
-import { baseURL } from "@/services/api/axiosInstance";
+import { getProductoImgUrl } from "@/utils/producto";
 
 interface FormProductoProps {
   isOpen: boolean;
@@ -237,9 +237,7 @@ const FormProducto: React.FC<FormProductoProps> = ({
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-1">Imagen actual:</p>
             <img
-              src={`${baseURL.replace(/\/$/, "")}/uploads/productos/${
-                productToEdit.imgProd
-              }`}
+              src={getProductoImgUrl(productToEdit)}
               alt="Imagen del producto"
               className="w-32 h-32 object-cover rounded-md border"
             />
