@@ -1,4 +1,8 @@
 Backend/src/main/resources/application.properties
 Frontend/.env
-uploads/productos
+Backend/uploads/productos
 Backend/src/main/resources/application-local.properties
+
+# Ignore uploaded files
+/uploads
+/Backend/uploads

@@ -94,6 +94,7 @@ com\magicGroup\backend\services\productosServices\CategoriaService.class
 com\magicGroup\backend\repository\extrasRepository\MetodoPagoRepository.class
 com\magicGroup\backend\repository\usuariosRepository\ClienteRepository.class
 com\magicGroup\backend\model\extras\Direccion$Tipo.class
+com\magicGroup\backend\Controller\productosController\StaticFileController.class
 com\magicGroup\backend\services\ventasServices\PedidoService.class
 com\magicGroup\backend\model\ventas\Venta.class
 com\magicGroup\backend\services\extrasServices\extraServiceImpl\MetodoPagoServiceImpl.class

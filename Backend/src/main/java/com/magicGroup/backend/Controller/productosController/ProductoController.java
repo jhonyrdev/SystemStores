@@ -21,18 +21,46 @@ public class ProductoController {
     private final SubCategoriaService subCategoriaService;
 
     private static final String PROJECT_ROOT = System.getProperty("user.dir");
-    private static final String UPLOAD_DIR = PROJECT_ROOT + "/uploads/productos/";
+    private static final String UPLOAD_DIR;
+
+    static {
+        Path execDir = Paths.get(PROJECT_ROOT).toAbsolutePath();
+        Path uploadsProductos = findUploadsDir(execDir).resolve("productos").toAbsolutePath();
+        try {
+            Files.createDirectories(uploadsProductos);
+        } catch (Exception ignored) {
+        }
+        UPLOAD_DIR = uploadsProductos.toString() + System.getProperty("file.separator");
+    }
+
+    private static Path findUploadsDir(Path execDir) {
+        Path[] candidates = new Path[] {
+                execDir.resolve("uploads"),
+                execDir.resolve("Backend").resolve("uploads"),
+                execDir.getParent() != null ? execDir.getParent().resolve("uploads") : null,
+                execDir.getParent() != null ? execDir.getParent().resolve("Backend").resolve("uploads") : null
+        };
+        for (Path c : candidates) {
+            if (c != null && Files.exists(c))
+                return c;
+        }
+        Path fallback = execDir.resolve("Backend").resolve("uploads");
+        try {
+            Files.createDirectories(fallback);
+        } catch (Exception ignored) {
+        }
+        return fallback;
+    }
 
     public ProductoController(
             ProductoService productoService,
             CategoriaService categoriaService,
-            SubCategoriaService subCategoriaService
-    ) {
+            SubCategoriaService subCategoriaService) {
         this.productoService = productoService;
         this.categoriaService = categoriaService;
         this.subCategoriaService = subCategoriaService;
     }
-    
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listarProductos() {
         var productos = productoService.listarTodosConRelaciones().stream().map(p -> {
@@ -53,12 +81,14 @@ public class ProductoController {
 
         return ResponseEntity.ok(productos);
     }
-    
+
     private String guardarImagen(MultipartFile imagen) throws IOException {
-        if (imagen == null || imagen.isEmpty()) return null;
+        if (imagen == null || imagen.isEmpty())
+            return null;
 
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+        if (!Files.exists(uploadPath))
+            Files.createDirectories(uploadPath);
 
         String nombreImagen = System.currentTimeMillis() + "_" + imagen.getOriginalFilename();
         Files.copy(imagen.getInputStream(), uploadPath.resolve(nombreImagen), StandardCopyOption.REPLACE_EXISTING);
@@ -66,90 +96,87 @@ public class ProductoController {
     }
 
     // ------------------- REGISTRAR -------------------
-    @PostMapping(consumes = {"multipart/form-data"})
-public ResponseEntity<?> registrarProducto(
-    @RequestParam String nomProd,
-    @RequestParam String categoria,
-    @RequestParam String subcategoria,
-    @RequestParam BigDecimal precioProd,
-    @RequestParam Integer cantProd,
-    @RequestParam(required = false) String marca,
-    @RequestParam(required = false) String unidad,
-    @RequestPart(required = false) MultipartFile imagen
-) {
-    try {
-        var cat = categoriaService.buscarPorNombre(categoria);
-        if (cat == null)
-            return ResponseEntity.badRequest().body(Map.of("error", "Categoría no encontrada"));
-
-        var subCat = subCategoriaService.listarTodos().stream()
-            .filter(s -> s.getNomSubcat().equalsIgnoreCase(subcategoria)
-                && s.getCategoria().getIdCat().equals(cat.getIdCat()))
-            .findFirst()
-            .orElse(null);
-
-        if (subCat == null)
-            return ResponseEntity.badRequest().body(Map.of("error", "Subcategoría no válida para la categoría"));
-
-        if (cantProd < 0) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "El stock no puede ser negativo"));
-        }
-
-        var producto = new Producto();
-        producto.setNomProd(nomProd);
-        producto.setSubcategoria(subCat);
-        producto.setPrecioProd(precioProd);
-        producto.setCantProd(cantProd);
-        producto.setMarca(marca);
-        producto.setUnidad(unidad);
-        producto.setImgProd(guardarImagen(imagen));
-        
-        var guardado = productoService.guardar(producto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-            "message", "Producto registrado correctamente",
-            "producto", guardado
-        ));
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-    }
-}
-
-    // ------------------- ACTUALIZAR -------------------
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    public ResponseEntity<?> actualizarProducto(
-        @PathVariable Integer id,
-        @RequestParam String nomProd,
-        @RequestParam String categoria,
-        @RequestParam String subcategoria,
-        @RequestParam BigDecimal precioProd,
-        @RequestParam Integer cantProd,
-        @RequestParam(required = false) String marca,
-        @RequestParam(required = false) String unidad,
-        @RequestPart(required = false) MultipartFile imagen
-    ) {
+    @PostMapping(consumes = { "multipart/form-data" })
+    public ResponseEntity<?> registrarProducto(
+            @RequestParam String nomProd,
+            @RequestParam String categoria,
+            @RequestParam String subcategoria,
+            @RequestParam BigDecimal precioProd,
+            @RequestParam Integer cantProd,
+            @RequestParam(required = false) String marca,
+            @RequestParam(required = false) String unidad,
+            @RequestPart(required = false) MultipartFile imagen) {
         try {
-            var producto = productoService.obtenerPorId(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-
             var cat = categoriaService.buscarPorNombre(categoria);
             if (cat == null)
                 return ResponseEntity.badRequest().body(Map.of("error", "Categoría no encontrada"));
 
             var subCat = subCategoriaService.listarTodos().stream()
-                .filter(s -> s.getNomSubcat().equalsIgnoreCase(subcategoria)
-                    && s.getCategoria().getIdCat().equals(cat.getIdCat()))
-                .findFirst()
-                .orElse(null);
+                    .filter(s -> s.getNomSubcat().equalsIgnoreCase(subcategoria)
+                            && s.getCategoria().getIdCat().equals(cat.getIdCat()))
+                    .findFirst()
+                    .orElse(null);
 
             if (subCat == null)
                 return ResponseEntity.badRequest().body(Map.of("error", "Subcategoría no válida para la categoría"));
 
             if (cantProd < 0) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El stock no puede ser negativo"));
+                        .body(Map.of("error", "El stock no puede ser negativo"));
+            }
+
+            var producto = new Producto();
+            producto.setNomProd(nomProd);
+            producto.setSubcategoria(subCat);
+            producto.setPrecioProd(precioProd);
+            producto.setCantProd(cantProd);
+            producto.setMarca(marca);
+            producto.setUnidad(unidad);
+            producto.setImgProd(guardarImagen(imagen));
+
+            var guardado = productoService.guardar(producto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "message", "Producto registrado correctamente",
+                    "producto", guardado));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ------------------- ACTUALIZAR -------------------
+    @PutMapping(value = "/{id}", consumes = { "multipart/form-data" })
+    public ResponseEntity<?> actualizarProducto(
+            @PathVariable Integer id,
+            @RequestParam String nomProd,
+            @RequestParam String categoria,
+            @RequestParam String subcategoria,
+            @RequestParam BigDecimal precioProd,
+            @RequestParam Integer cantProd,
+            @RequestParam(required = false) String marca,
+            @RequestParam(required = false) String unidad,
+            @RequestPart(required = false) MultipartFile imagen) {
+        try {
+            var producto = productoService.obtenerPorId(id)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            var cat = categoriaService.buscarPorNombre(categoria);
+            if (cat == null)
+                return ResponseEntity.badRequest().body(Map.of("error", "Categoría no encontrada"));
+
+            var subCat = subCategoriaService.listarTodos().stream()
+                    .filter(s -> s.getNomSubcat().equalsIgnoreCase(subcategoria)
+                            && s.getCategoria().getIdCat().equals(cat.getIdCat()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (subCat == null)
+                return ResponseEntity.badRequest().body(Map.of("error", "Subcategoría no válida para la categoría"));
+
+            if (cantProd < 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "El stock no puede ser negativo"));
             }
 
             producto.setNomProd(nomProd);
@@ -160,21 +187,20 @@ public ResponseEntity<?> registrarProducto(
             producto.setUnidad(unidad);
 
             var nuevaImg = guardarImagen(imagen);
-            if (nuevaImg != null) producto.setImgProd(nuevaImg);
+            if (nuevaImg != null)
+                producto.setImgProd(nuevaImg);
 
             var actualizado = productoService.guardar(producto);
 
             return ResponseEntity.ok(Map.of(
-                "message", "Producto actualizado correctamente",
-                "producto", actualizado
-            ));
+                    "message", "Producto actualizado correctamente",
+                    "producto", actualizado));
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
-
 
     // ------------------- ELIMINAR -------------------
     @DeleteMapping("/{id}")

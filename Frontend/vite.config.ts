@@ -3,7 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-// https://vite.dev/config/
+const apiTarget = process.env.VITE_API_URL ?? "http://localhost:8080";
+
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   resolve: {
@@ -30,5 +31,19 @@ export default defineConfig({
         replacement: path.resolve(path.join(__dirname, "/src/utils")),
       },
     ],
+  },
+  server: {
+    proxy: {
+      "/api": {
+        target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      "/uploads": {
+        target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
