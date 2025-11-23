@@ -75,10 +75,6 @@ public class AuthController {
 	@PostMapping("/google-login")
 	public ResponseEntity<?> loginConGoogle(@RequestBody Map<String, String> body, HttpServletRequest request) {
 		String code = body.get("code");
-		// Use the redirect URI configured in properties. If frontend sends a
-		// `redirectUri` in the body,
-		// prefer that (useful for development), otherwise fall back to configured
-		// value.
 		String redirectUri = body.getOrDefault("redirectUri", googleRedirectUri);
 
 		try {

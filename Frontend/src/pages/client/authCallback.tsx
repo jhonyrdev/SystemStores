@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { mapBackendToCliente } from "@/utils/clienteMapper";
-import { toast } from "sonner";
 import api from "@/utils/axiomInstance";
 import type { Cliente } from "@/types/cliente";
 
@@ -37,8 +36,6 @@ const AuthCallback = () => {
 
         const clienteMapeado = mapBackendToCliente(data.cliente);
         localStorage.setItem("usuario", JSON.stringify(clienteMapeado));
-
-        toast.success("¡Bienvenido!", { description: `Hola ${data.cliente.nombre}` });
         navigate("/cuenta");
       } catch (err: unknown) {
         console.error("Error al iniciar sesión:", err);
