@@ -24,7 +24,6 @@ const ProductoSection = memo(() => {
     setProductoSeleccionado(null);
   }, []);
 
-  // Función para obtener productos aleatorios
   const obtenerProductosAleatorios = useCallback((productos: Producto[], cantidad: number) => {
     const shuffled = [...productos].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, cantidad);
@@ -34,7 +33,6 @@ const ProductoSection = memo(() => {
     const fetchProductos = async () => {
       try {
         const data = await listarProductos();
-        // Seleccionar 5 productos aleatorios
         const productosAleatorios = obtenerProductosAleatorios(data, 5);
         setProductos(productosAleatorios);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

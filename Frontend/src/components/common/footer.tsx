@@ -14,13 +14,8 @@ const Footer = () => {
           <h6 className="uppercase font-semibold mb-3">Enlaces</h6>
           <ul className="space-y-2">
             <li>
-              <a href="/productos" className="hover:text-primary">
+              <a href="/categoria" className="hover:text-primary">
                 Productos
-              </a>
-            </li>
-            <li>
-              <a href="/ofertas" className="hover:text-primary">
-                Ofertas
               </a>
             </li>
             <li>
@@ -31,6 +26,11 @@ const Footer = () => {
             <li>
               <a href="/contacto" className="hover:text-primary">
                 Contacto
+              </a>
+            </li>
+            <li>
+              <a href="/Fq" className="hover:text-primary">
+                Preguntas Frecuentes
               </a>
             </li>
           </ul>

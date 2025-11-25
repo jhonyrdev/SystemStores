@@ -45,6 +45,7 @@ export default function ProductoCatalogo() {
         setProductos(prods);
         setError(null);
       } catch (err) {
+        console.error(err);
         setError("Error al cargar productos");
       } finally {
         setCargando(false);

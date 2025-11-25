@@ -1,17 +1,21 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Autoplay from "embla-carousel-autoplay"
+import * as React from "react";
+import Autoplay from "embla-carousel-autoplay";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-} from "@/components/ui/carousel"
+} from "@/components/ui/carousel";
 
 const Hero = () => {
   const plugin = React.useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: false }) // autoplay cada 4 segundos
-  )
+    Autoplay({ delay: 4000, stopOnInteraction: false })
+  );
+
+  const banners = ["/img/banners/banner1.webp", 
+                    "/img/banners/banner2.webp", 
+                    "/img/banners/banner3.webp"];
 
   return (
     <div className="relative w-full">
@@ -24,26 +28,20 @@ const Hero = () => {
         className="w-full"
       >
         <CarouselContent className="-ml-0">
-          <CarouselItem className="pl-0">
-            <img
-              src="/img/banners/banner1.webp"
-              alt="Slide 1"
-              loading="lazy"
-              className="w-full h-auto object-cover"
-            />
-          </CarouselItem>
-          <CarouselItem className="pl-0">
-            <img
-              src="/img/banners/banner2.webp"
-              alt="Slide 2"
-              loading="lazy"
-              className="w-full h-auto object-cover"
-            />
-          </CarouselItem>
+          {banners.map((src, i) => (
+            <CarouselItem className="pl-0" key={src}>
+              <img
+                src={src}
+                alt={`Slide ${i + 1}`}
+                loading="lazy"
+                className="w-full h-auto object-cover"
+              />
+            </CarouselItem>
+          ))}
         </CarouselContent>
       </Carousel>
     </div>
-  )
-}
+  );
+};
 
-export default Hero
+export default Hero;

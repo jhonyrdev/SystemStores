@@ -4,8 +4,8 @@ import { Routes, Route } from "react-router-dom";
 const Inicio = lazy(() => import("@pages/landing/inicio"));
 const Contacto = lazy(() => import("@pages/landing/contacto"));
 const Fq = lazy(() => import("@pages/landing/fq"));
-const ForgotPassword = lazy(() => import("@pages/landing/forgotPassword"));
-const ResetPassword = lazy(() => import("@pages/landing/resetPassword"));
+const ForgotPassword = lazy(() => import("@/components/landing/forgotPassword"));
+const ResetPassword = lazy(() => import("@/components/landing/resetPassword"));
 
 // Cliente
 const PerfilCliente = lazy(() => import("@/pages/client/perfilCliente"));
@@ -28,6 +28,7 @@ import PaginaCatalogo from "@/pages/landing/productosCatalogo";
 import LayoutCatalogo from "@/layout/layoutCatalogo";
 import Checkout from "@/pages/client/chekout";
 import AuthCallback from "@/pages/client/authCallback";
+import Nosotros from "@/pages/landing/nosotros";
 
 const AppRoutes = () => {
   return (
@@ -48,6 +49,7 @@ const AppRoutes = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="fq" element={<Fq />} />
           <Route path="contacto" element={<Contacto />} />
+          <Route path="nosotros" element={<Nosotros />} />
 
           {/* Rutas: layout Plataforma Cliente*/}
           <Route path="/cuenta" element={<LayoutCliente />}>

@@ -54,7 +54,6 @@ const CarritoAside = ({
     null
   );
 
-  // Cerrar modal cuando se navega a forgot-password
   useEffect(() => {
     const handleCloseModal = () => {
       setModalOpen(false);

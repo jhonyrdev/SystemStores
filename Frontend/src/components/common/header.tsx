@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import useCarrito from "@/hooks/useCarrito";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -56,6 +56,81 @@ const Header: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const { items } = useCarrito();
+  // header hide/show on scroll
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollRef = useRef(0);
+  const scrollStopTimerRef = useRef<number | null>(null);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [spacerHeight, setSpacerHeight] = useState(0);
+
+  useEffect(() => {
+    // set initial spacer height
+    setTimeout(() => {
+      setSpacerHeight(headerRef.current?.offsetHeight ?? 0);
+    }, 0);
+
+    let ticking = false;
+
+    const onScroll = () => {
+      const current = window.scrollY || window.pageYOffset;
+
+      // clear any existing stop timer (we'll reschedule below)
+      if (scrollStopTimerRef.current) {
+        window.clearTimeout(scrollStopTimerRef.current);
+        scrollStopTimerRef.current = null;
+      }
+
+      // if any overlay/menu is open, keep header visible
+      if (menuOpen || isCarritoOpen || modalOpen) {
+        setIsHeaderVisible(true);
+        lastScrollRef.current = current;
+        return;
+      }
+
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const last = lastScrollRef.current || 0;
+          const delta = current - last;
+          const threshold = 10;
+
+          if (current <= 0) {
+            setIsHeaderVisible(true);
+          } else if (delta > threshold && current > 100) {
+            // scrolled down -> hide while scrolling
+            setIsHeaderVisible(false);
+          } else if (delta < -threshold) {
+            // scrolled up -> show immediately
+            setIsHeaderVisible(true);
+          }
+
+          lastScrollRef.current = current;
+          ticking = false;
+
+          // show header after user stops scrolling for 700ms
+          scrollStopTimerRef.current = window.setTimeout(() => {
+            setIsHeaderVisible(true);
+            scrollStopTimerRef.current = null;
+          }, 700);
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () =>
+      setSpacerHeight(headerRef.current?.offsetHeight ?? 0);
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      if (scrollStopTimerRef.current) {
+        window.clearTimeout(scrollStopTimerRef.current);
+        scrollStopTimerRef.current = null;
+      }
+    };
+    // menuOpen/isCarritoOpen/modalOpen are referenced inside handler
+  }, [menuOpen, isCarritoOpen, modalOpen]);
   const handleClick = () => {
     const usuarioGuardado = localStorage.getItem("usuario");
     if (usuarioGuardado) {
@@ -251,7 +326,13 @@ const Header: React.FC = () => {
         </div>
       </Modal>
 
-      <header className="w-full">
+      <div style={{ height: spacerHeight }} aria-hidden />
+      <header
+        ref={headerRef}
+        className={`w-full left-0 z-50 transform transition-transform duration-300 ${
+          isHeaderVisible ? "translate-y-0" : "-translate-y-full"
+        } fixed top-0`}
+      >
         {/* Barra superior */}
         <div className="bg-principal-oscuro text-white px-5 py-1">
           <div className="container-bootstrap flex justify-center items-center text-sm">
@@ -294,7 +375,7 @@ const Header: React.FC = () => {
             {/* Iconos */}
             <div className="flex items-center gap-4">
               {/* Buscar */}
-              <button className="hidden lg:flex text-primary hover:text-primary/80">
+              <button className="hidden md:hidden lg:hidden text-primary hover:text-primary/80">
                 <Search className="h-5 w-5" />
               </button>
 
@@ -308,7 +389,7 @@ const Header: React.FC = () => {
 
               <Separator
                 orientation="vertical"
-                className="hidden lg:flex h-5 bg-gray-300"
+                className="h-5 w-px bg-principal-oscuro"
               />
 
               {/* Carrito */}
