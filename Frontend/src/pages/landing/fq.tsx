@@ -37,7 +37,9 @@ const Fq: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-center mb-8">Preguntas Frecuentes</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Preguntas Frecuentes
+      </h1>
       <div className="space-y-4">
         {faqs.map((faq, index) => {
           const isOpen = openIndex === index;
@@ -62,7 +64,12 @@ const Fq: React.FC = () => {
                 </span>
               </button>
 
-              <div id={panelId} role="region" aria-labelledby={btnId} hidden={!isOpen}>
+              <div
+                id={panelId}
+                role="region"
+                aria-labelledby={btnId}
+                hidden={!isOpen}
+              >
                 <p className="mt-2 text-gray-700">{faq.answer}</p>
               </div>
             </div>
