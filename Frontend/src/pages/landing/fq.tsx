@@ -9,22 +9,12 @@ const faqs: FAQ[] = [
   {
     question: "¿Cuánto tardará en llegar mi pedido?",
     answer:
-      "El tiempo de entrega depende de tu ubicación. Normalmente, los pedidos llegan entre 3-7 días hábiles.",
-  },
-  {
-    question: "¿Puedo devolver un producto?",
-    answer:
-      "Sí, aceptamos devoluciones dentro de los 30 días posteriores a la compra, siempre que el producto esté en condiciones originales.",
+      "El tiempo de entrega depende de tu ubicación. Normalmente, los pedidos llegan entre 20 minutos a 1h.",
   },
   {
     question: "¿Cómo puedo pagar?",
     answer:
-      "Aceptamos tarjetas de crédito, débito y pagos mediante PayPal. Todas las transacciones son seguras.",
-  },
-  {
-    question: "¿Tienen envío internacional?",
-    answer:
-      "Sí, realizamos envíos internacionales. El costo y tiempo de entrega varían según el país de destino.",
+      "Aceptamos tarjetas de crédito, débito y pagos mediante Yape o Plin. Todas las transacciones son seguras.",
   },
 ];
 

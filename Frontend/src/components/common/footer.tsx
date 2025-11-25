@@ -39,13 +39,13 @@ const Footer = () => {
         <div className="col-md-4 mb-3">
           <h6 className="text-uppercase fw-bold">Síguenos</h6>
           <div className="d-flex mt-4">
-            <a href="#" className="me-3 text-black">
+            <a href="https://www.facebook.com/" className="me-3 text-black">
               <i className="fa-brands fa-facebook text-2xl"></i>
             </a>
-            <a href="#" className="me-3 text-black">
+            <a href="https://www.instagram.com/" className="me-3 text-black">
               <i className="fa-brands fa-instagram text-2xl"></i>
             </a>
-            <a href="#" className="me-3 text-black">
+            <a href="https://www.tiktok.com/explore" className="me-3 text-black">
               <i className="fa-brands fa-tiktok text-2xl"></i>
             </a>
             <a href="#" className="text-black">

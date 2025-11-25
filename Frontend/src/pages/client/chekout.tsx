@@ -41,7 +41,6 @@ const Checkout = () => {
     0
   );
 
-  // Restaurar pedido pendiente (si el usuario recargó la página o cerró la pestaña)
   useEffect(() => {
     try {
       const stored = localStorage.getItem("pedidoRegistrado");

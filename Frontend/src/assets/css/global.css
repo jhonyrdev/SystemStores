@@ -37,3 +37,33 @@
 .bg-secundario-claro-opacidad {
   background-color: #fffdf5f4;
 }
+
+:root {
+  /* Colors from the project palette as CSS variables */
+  --color-principal: #a00691;
+  --color-principal-claro: #b615a6ff;
+  --color-principal-oscuro: #5e0956;
+
+  --color-secundario: #f2c32f;
+  --color-secundario-oscuro: #c89b06;
+  --color-secundario-claro: #fffbf0ff;
+  --color-secundario-claro1: #fcdb76ff;
+
+  /* Gradient defaults (can be overridden) */
+  --grad-from: var(--color-secundario-claro1);
+  --grad-to: var(--color-principal-oscuro);
+}
+
+/* Utility gradient that uses the project palette */
+.bg-gradient-principal {
+  background-image: linear-gradient(135deg, var(--grad-from), var(--grad-to));
+}
+
+/* alternative slightly lighter gradient */
+.bg-gradient-principal-soft {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-secundario-claro1),
+    var(--color-principal-claro)
+  );
+}
