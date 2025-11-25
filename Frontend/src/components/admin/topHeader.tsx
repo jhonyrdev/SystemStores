@@ -12,24 +12,32 @@ const TopHeader: React.FC<TopHeaderProps> = ({ scrollContainerRef }) => {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const container = scrollContainerRef?.current;
-    if (!container) return;
+  const container = scrollContainerRef?.current;
+  if (!container) return;
 
-    let last = container.scrollTop;
+  const isLargeScreen = window.matchMedia("(min-width: 1024px)").matches;
+  if (isLargeScreen) {
+    // En pantallas grandes NO ocultamos el header
+    setHidden(false);
+    return;
+  }
 
-    const onScroll = () => {
-      const cur = container.scrollTop;
-      if (cur > last && cur > 20) {
-        setHidden(true);
-      } else {
-        setHidden(false);
-      }
-      last = cur;
-    };
+  let last = container.scrollTop;
 
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [scrollContainerRef]);
+  const onScroll = () => {
+    const cur = container.scrollTop;
+    if (cur > last && cur > 20) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+    last = cur;
+  };
+
+  container.addEventListener("scroll", onScroll, { passive: true });
+  return () => container.removeEventListener("scroll", onScroll);
+}, [scrollContainerRef]);
+
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminAutenticado");

@@ -5,8 +5,8 @@ const LayoutAdmin = () => {
   return (
     <>
       <DashboardLayout>
-      <Outlet />
-    </DashboardLayout>
+        <Outlet />
+      </DashboardLayout>
     </>
   );
 };
