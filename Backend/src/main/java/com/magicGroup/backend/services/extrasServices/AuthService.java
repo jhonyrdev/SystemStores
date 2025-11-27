@@ -6,6 +6,7 @@ import com.magicGroup.backend.repository.usuariosRepository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -18,8 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.slf4j.*;
@@ -51,7 +51,6 @@ public class AuthService {
 	private final RestTemplate restTemplate = new RestTemplate();
 
 	public Map<String, Object> loginConGoogle(String code, String redirectUri) {
-
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -67,7 +66,7 @@ public class AuthService {
 				"https://oauth2.googleapis.com/token",
 				HttpMethod.POST,
 				request,
-				new ParameterizedTypeReference<Map<String, Object>>() {
+				new ParameterizedTypeReference<>() {
 				});
 
 		Map<String, Object> tokenBody = tokenResponse.getBody();
@@ -85,7 +84,7 @@ public class AuthService {
 				"https://www.googleapis.com/oauth2/v3/userinfo",
 				HttpMethod.GET,
 				userRequest,
-				new ParameterizedTypeReference<Map<String, Object>>() {
+				new ParameterizedTypeReference<>() {
 				});
 
 		Map<String, Object> userInfo = userResponse.getBody();
@@ -99,47 +98,45 @@ public class AuthService {
 	@Transactional
 	public Optional<Cliente> findOrCreateClienteByEmail(String email, Map<String, Object> googleUser,
 			HttpServletRequest request) {
-
-		if (email == null || email.isEmpty()) {
+		if (email == null || email.isEmpty())
 			throw new IllegalArgumentException("Email no puede ser nulo");
-		}
 
-		Object emailVerifiedObj = googleUser.get("email_verified");
-		boolean emailVerified = emailVerifiedObj != null && Boolean.parseBoolean(emailVerifiedObj.toString());
-		if (!emailVerified) {
+		boolean emailVerified = Boolean.parseBoolean(String.valueOf(googleUser.getOrDefault("email_verified", false)));
+		if (!emailVerified)
 			throw new RuntimeException("El email no está verificado por Google");
-		}
 
 		Optional<Cliente> clienteOpt = clienteRepository.findByCorreoCli(email);
 
 		if (clienteOpt.isPresent()) {
 			Cliente cliente = clienteOpt.get();
 
-			if (cliente.getCredencial() != null && !esUsuarioGoogle(cliente.getCredencial())) {
-				throw new RuntimeException(
-						"Este correo ya está registrado con usuario y contraseña. " +
-								"Por favor inicia sesión con tu usuario y contraseña.");
-			}
+			if (cliente.getCredencial() != null && !esUsuarioGoogle(cliente.getCredencial()))
+				throw new RuntimeException("Correo ya registrado con usuario/contraseña");
 
-			if (cliente.getEstado() != Cliente.Estado.activo) {
+			if (cliente.getEstado() != Cliente.Estado.activo)
 				clienteService.reactivarAlIniciarSesion(cliente.getIdCli());
-			}
 
-			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(cliente, null,
-					null);
-			SecurityContextHolder.getContext().setAuthentication(authToken);
-			request.getSession().setAttribute(
-					HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-					SecurityContextHolder.getContext());
-
+			autenticarCliente(cliente, request);
 			return Optional.of(cliente);
 		}
 
-		// Crear nuevo cliente Google
+		Cliente cliente = crearClienteGoogle(email, googleUser);
+		autenticarCliente(cliente, request);
+		return Optional.of(cliente);
+	}
+
+	private void autenticarCliente(Cliente cliente, HttpServletRequest request) {
+		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(cliente, null, null);
+		SecurityContextHolder.getContext().setAuthentication(authToken);
+		request.getSession().setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+				SecurityContextHolder.getContext());
+	}
+
+	private Cliente crearClienteGoogle(String email, Map<String, Object> googleUser) {
 		String nombreGoogle = (String) googleUser.get("given_name");
 		String apellidoGoogle = (String) googleUser.get("family_name");
 
-		String nombreBase = nombreGoogle != null && !nombreGoogle.isEmpty()
+		String nombreBase = (nombreGoogle != null && !nombreGoogle.isEmpty())
 				? nombreGoogle.replaceAll("\\s+", "").toLowerCase()
 				: email.split("@")[0];
 
@@ -148,8 +145,7 @@ public class AuthService {
 		int contador = 1;
 
 		while (credencialRepository.findByUsuario(usuarioCredencial).isPresent()) {
-			usuarioCredencial = usuarioBase + contador;
-			contador++;
+			usuarioCredencial = usuarioBase + contador++;
 		}
 
 		Credencial credencial = new Credencial();
@@ -157,8 +153,6 @@ public class AuthService {
 		credencial.setClave(passwordEncoder.encode(UUID.randomUUID().toString()));
 		credencial.setRol(Credencial.Rol.cliente);
 
-		// Guardar la credencial con reintentos en caso de colisión de clave única
-		// (usuario)
 		int guardarIntentos = 0;
 		final int MAX_INTENTOS = 5;
 		while (true) {
@@ -166,107 +160,37 @@ public class AuthService {
 				credencial = credencialRepository.saveAndFlush(credencial);
 				break;
 			} catch (DataIntegrityViolationException dive) {
-				guardarIntentos++;
-				logger.warn("Fallo al guardar Credencial con usuario='{}'. Intento {}/{}. Error: {}",
-						usuarioCredencial, guardarIntentos, MAX_INTENTOS, dive.getMessage());
-				if (guardarIntentos >= MAX_INTENTOS) {
-					throw new RuntimeException("No se pudo generar un usuario único para la credencial después de "
-							+ MAX_INTENTOS + " intentos", dive);
-				}
-				// generar nuevo usuario con sufijo incremental
-				usuarioCredencial = usuarioBase + contador;
-				contador++;
-				credencial.setUsuario(usuarioCredencial);
-				// y volver a intentar
+				if (++guardarIntentos >= MAX_INTENTOS)
+					throw new RuntimeException("No se pudo generar usuario único para credencial", dive);
+				credencial.setUsuario(usuarioBase + contador++);
 			}
 		}
 
 		Cliente cliente = new Cliente();
 		cliente.setCodCli(registroService.generarCodigoClienteUnico());
-		cliente.setNomCli(nombreGoogle != null && !nombreGoogle.isEmpty() ? nombreGoogle : "Usuario");
-		cliente.setApeCli(apellidoGoogle != null && !apellidoGoogle.isEmpty() ? apellidoGoogle : "");
+		cliente.setNomCli(nombreGoogle != null ? nombreGoogle : "Usuario");
+		cliente.setApeCli(apellidoGoogle != null ? apellidoGoogle : "");
 		cliente.setCorreoCli(email);
 		cliente.setTelCli("");
 		cliente.setEstado(Cliente.Estado.activo);
 		cliente.setFechaReg(LocalDate.now());
 		cliente.setCredencial(credencial);
-		cliente = clienteRepository.saveAndFlush(cliente);
 
-		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(cliente, null, null);
-		SecurityContextHolder.getContext().setAuthentication(authToken);
-		request.getSession().setAttribute(
-				HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-				SecurityContextHolder.getContext());
-
-		return Optional.of(cliente);
-	}
-
-	// Agregar este método al final de la clase
-	public boolean esUsuarioGoogle(Credencial credencial) {
-		return credencial != null &&
-				credencial.getUsuario() != null &&
-				credencial.getUsuario().startsWith("cliG");
-	}
-
-	private boolean isHashed(String password) {
-		return password != null && password.startsWith("$2a$");
-	}
-
-	@SuppressWarnings("unused")
-	private String ensureHashed(String password) {
-		return isHashed(password) ? password : passwordEncoder.encode(password);
+		return clienteRepository.saveAndFlush(cliente);
 	}
 
 	public Optional<Cliente> loginCliente(String identificador, String claveIngresada, HttpServletRequest request) {
 		Optional<Cliente> clienteOpt = clienteRepository.findByCorreoCli(identificador);
 
 		if (clienteOpt.isEmpty()) {
-			Optional<Credencial> credOpt = credencialRepository.findByUsuario(identificador);
-			if (credOpt.isPresent()) {
-				Credencial cred = credOpt.get();
-
-				// Verificar que NO sea usuario de Google
-				if (esUsuarioGoogle(cred)) {
-					throw new RuntimeException(
-							"Este usuario fue creado con Google. Por favor inicia sesión con Google.");
-				}
-
-				if (!isHashed(cred.getClave())) {
-					cred.setClave(passwordEncoder.encode(cred.getClave()));
-					credencialRepository.save(cred);
-				}
-
-				Optional<Cliente> clienteEncontrado = clienteRepository.findAll().stream()
-						.filter(c -> c.getCredencial() != null)
-						.filter(c -> c.getCredencial().getIdCred().equals(cred.getIdCred()) &&
-								c.getEstado() == Cliente.Estado.activo &&
-								cred.getClave() != null &&
-								passwordEncoder.matches(claveIngresada, cred.getClave()))
-						.findFirst();
-
-				clienteEncontrado.ifPresent(cliente -> {
-					clienteService.reactivarAlIniciarSesion(cliente.getIdCli());
-
-					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(cliente,
-							null, null);
-					SecurityContextHolder.getContext().setAuthentication(authToken);
-					request.getSession().setAttribute(
-							HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-							SecurityContextHolder.getContext());
-				});
-
-				return clienteEncontrado;
-			}
-			return Optional.empty();
+			return loginPorUsuario(identificador, claveIngresada, request);
 		}
 
 		Cliente cliente = clienteOpt.get();
 		Credencial cred = cliente.getCredencial();
 
-		// Verificar que NO sea usuario de Google
-		if (esUsuarioGoogle(cred)) {
+		if (esUsuarioGoogle(cred))
 			throw new RuntimeException("Este usuario fue creado con Google. Por favor inicia sesión con Google.");
-		}
 
 		if (!isHashed(cred.getClave())) {
 			cred.setClave(passwordEncoder.encode(cred.getClave()));
@@ -275,23 +199,43 @@ public class AuthService {
 
 		if (cliente.getEstado() == Cliente.Estado.activo &&
 				passwordEncoder.matches(claveIngresada, cred.getClave())) {
-
 			clienteService.reactivarAlIniciarSesion(cliente.getIdCli());
-
-			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(cliente, null,
-					null);
-			SecurityContextHolder.getContext().setAuthentication(authToken);
-			request.getSession().setAttribute(
-					HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-					SecurityContextHolder.getContext());
-
+			autenticarCliente(cliente, request);
 			return Optional.of(cliente);
 		}
 
 		return Optional.empty();
 	}
 
-	// Login Admin (solo correo)
+	private Optional<Cliente> loginPorUsuario(String usuario, String clave, HttpServletRequest request) {
+		Optional<Credencial> credOpt = credencialRepository.findByUsuario(usuario);
+		if (credOpt.isEmpty())
+			return Optional.empty();
+
+		Credencial cred = credOpt.get();
+		if (esUsuarioGoogle(cred))
+			throw new RuntimeException("Usuario creado con Google");
+
+		if (!isHashed(cred.getClave())) {
+			cred.setClave(passwordEncoder.encode(cred.getClave()));
+			credencialRepository.save(cred);
+		}
+
+		Optional<Cliente> clienteEncontrado = clienteRepository.findAll().stream()
+				.filter(c -> c.getCredencial() != null)
+				.filter(c -> c.getCredencial().getIdCred().equals(cred.getIdCred())
+						&& c.getEstado() == Cliente.Estado.activo
+						&& passwordEncoder.matches(clave, cred.getClave()))
+				.findFirst();
+
+		clienteEncontrado.ifPresent(c -> {
+			clienteService.reactivarAlIniciarSesion(c.getIdCli());
+			autenticarCliente(c, request);
+		});
+
+		return clienteEncontrado;
+	}
+
 	public Optional<Administrador> loginAdmin(String correo, String claveIngresada) {
 		Optional<Administrador> adminOpt = administradorRepository.findByCorreoAdmin(correo);
 		if (adminOpt.isEmpty())
@@ -305,79 +249,73 @@ public class AuthService {
 			credencialRepository.save(cred);
 		}
 
-		if (passwordEncoder.matches(claveIngresada, cred.getClave())) {
-			return Optional.of(admin);
-		}
-
-		return Optional.empty();
+		return passwordEncoder.matches(claveIngresada, cred.getClave())
+				? Optional.of(admin)
+				: Optional.empty();
 	}
 
-	// Solicitar recuperación de contraseña
 	@Transactional
 	public void solicitarRecuperacionContrasena(String email) {
 		Optional<Cliente> clienteOpt = clienteRepository.findByCorreoCli(email);
-		
 		if (clienteOpt.isEmpty()) {
-			// Por seguridad, no revelamos si el email existe o no
 			logger.warn("Solicitud de recuperación para email no registrado: {}", email);
 			return;
 		}
 
 		Cliente cliente = clienteOpt.get();
-		
-		// Verificar que no sea usuario de Google
-		if (esUsuarioGoogle(cliente.getCredencial())) {
+		if (esUsuarioGoogle(cliente.getCredencial()))
 			throw new RuntimeException("Este usuario fue creado con Google. No puede restablecer contraseña.");
-		}
 
-		// Eliminar tokens anteriores del cliente
 		passwordResetTokenRepository.deleteByCliente(cliente);
 
-		// Generar nuevo token
-		String token = UUID.randomUUID().toString();
 		PasswordResetToken resetToken = new PasswordResetToken();
-		resetToken.setToken(token);
 		resetToken.setCliente(cliente);
-		resetToken.setExpiryDate(LocalDateTime.now().plusHours(1)); // Token válido por 1 hora
+		resetToken.setToken(UUID.randomUUID().toString());
+		resetToken.setExpiryDate(LocalDateTime.now().plusHours(1));
 		resetToken.setUsado(false);
-		
-		passwordResetTokenRepository.save(resetToken);
 
-		// Enviar email
-		emailService.sendPasswordResetEmail(email, token);
-		logger.info("Token de recuperación generado para cliente: {}", cliente.getIdCli());
+		passwordResetTokenRepository.save(resetToken);
+		enviarCorreoAsync(email, resetToken.getToken());
 	}
 
-	// Restablecer contraseña con token
+	@Async
+	public void enviarCorreoAsync(String email, String token) {
+		emailService.sendPasswordResetEmail(email, token);
+	}
+
 	@Transactional
 	public void restablecerContrasena(String token, String nuevaContrasena) {
-		Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(token);
-		
-		if (tokenOpt.isEmpty()) {
-			throw new RuntimeException("Token inválido");
-		}
+		PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+				.orElseThrow(() -> new RuntimeException("Token inválido"));
 
-		PasswordResetToken resetToken = tokenOpt.get();
-
-		if (resetToken.isUsado()) {
+		if (resetToken.isUsado())
 			throw new RuntimeException("Este token ya fue utilizado");
-		}
-
-		if (resetToken.isExpired()) {
+		if (resetToken.isExpired())
 			throw new RuntimeException("El token ha expirado");
-		}
 
 		Cliente cliente = resetToken.getCliente();
 		Credencial credencial = cliente.getCredencial();
 
-		// Actualizar contraseña
 		credencial.setClave(passwordEncoder.encode(nuevaContrasena));
 		credencialRepository.save(credencial);
 
-		// Marcar token como usado
 		resetToken.setUsado(true);
 		passwordResetTokenRepository.save(resetToken);
 
 		logger.info("Contraseña restablecida exitosamente para cliente: {}", cliente.getIdCli());
 	}
+
+	public boolean esUsuarioGoogle(Credencial credencial) {
+		return credencial != null && credencial.getUsuario() != null && credencial.getUsuario().startsWith("cliG");
+	}
+
+	private boolean isHashed(String password) {
+		return password != null && password.startsWith("$2a$");
+	}
+
+	@SuppressWarnings("unused")
+	private String ensureHashed(String password) {
+		return isHashed(password) ? password : passwordEncoder.encode(password);
+	}
+
 }
