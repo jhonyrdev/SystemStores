@@ -1,6 +1,5 @@
 import React, { useState, useEffect, type JSX } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { FcGoogle } from "react-icons/fc";
 import { MdOutlineMail as SiMicrosoftoutlook } from "react-icons/md";
 import { Button } from "@/components/ui/button";
@@ -77,9 +76,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [forgotToastShown, setForgotToastShown] = useState(false);
-  // Toggle this to true to temporarily disable the "Olvidaste tu contraseña" flow
-  const FORGOT_PASSWORD_TEMP_DISABLED = true;
 
   useEffect(() => {
     if (initialValues.imgProd) {
@@ -350,16 +346,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                       to="/forgot-password"
                       className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
                       onClick={(e) => {
-                        if (FORGOT_PASSWORD_TEMP_DISABLED) {
-                          e.preventDefault();
-                          if (!forgotToastShown) {
-                            toast("No disponible");
-                            setForgotToastShown(true);
-                          }
-                          return;
-                        }
                         e.preventDefault();
-                        // Cerrar modal si está dentro de uno
                         const modal = (e.target as HTMLElement).closest(
                           '[role="dialog"]'
                         );
@@ -372,15 +359,6 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                         setTimeout(() => {
                           window.location.href = "/forgot-password";
                         }, 100);
-                      }}
-                      onMouseEnter={() => {
-                        if (
-                          FORGOT_PASSWORD_TEMP_DISABLED &&
-                          !forgotToastShown
-                        ) {
-                          toast("No disponible");
-                          setForgotToastShown(true);
-                        }
                       }}
                     >
                       ¿Olvidaste tu contraseña?
