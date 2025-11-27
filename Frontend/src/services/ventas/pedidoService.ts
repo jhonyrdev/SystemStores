@@ -6,7 +6,6 @@ import type {
 } from "@/types/ventas";
 import api from "@/utils/axiomInstance";
 
-// Tipo usado por la UI para los detalles del pedido (coincide con lo que devuelve el backend)
 export type DetallePedidoItem = {
   idDetalle?: number;
   producto?: {

@@ -89,9 +89,7 @@ const PagoModal = ({
 
   useEffect(() => {
     if (open) {
-      // al abrir el modal, no mostrar selección previa
       setLocalTipoComprobante("");
-      // resetear metodo seleccionado en la UI hasta que el usuario lo elija
       setMetodoSeleccionado(null);
       setMetodoValidado(false);
       setOpenPaymentForm(false);
@@ -101,8 +99,7 @@ const PagoModal = ({
       setErrorRuc("");
       setErrorUsuario("");
       setErrorTipo("");
-      // original behavior: random sequence of success ~30%
-      const seq = Array.from({ length: 3 }, () => Math.random() < 0.3);
+      const seq = Array.from({ length: 3 }, () => Math.random() < 0.5);
       setAttemptOutcomes(seq);
     }
   }, [open]);
@@ -144,7 +141,7 @@ const PagoModal = ({
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const exito = attemptOutcomes[failureCount] ?? Math.random() < 0.3;
+      const exito = attemptOutcomes[failureCount] ?? Math.random() < 0.5;
 
       if (exito) {
         const codigo = generarCodigoComprobante();
